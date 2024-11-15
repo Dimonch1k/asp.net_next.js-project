@@ -4,7 +4,7 @@
  * Modify the docusaurus.config.js file at your site's root instead.
  */
 export default {
-  "title": "Notes",
+  "title": "My Site",
   "tagline": "Dinosaurs are cool",
   "favicon": "img/favicon.ico",
   "url": "https://your-docusaurus-site.example.com",
@@ -27,7 +27,7 @@ export default {
       {
         "docs": {
           "sidebarPath": "./sidebars.js",
-          "editUrl": "https://github.com/Dimonch1k/asp.net_next.js-project/"
+          "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/"
         },
         "blog": {
           "showReadingTime": true,
@@ -38,7 +38,7 @@ export default {
             ],
             "xslt": true
           },
-          "editUrl": "https://github.com/Dimonch1k/asp.net_next.js-project/",
+          "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/",
           "onInlineTags": "warn",
           "onInlineAuthors": "warn",
           "onUntruncatedBlogPosts": "warn"
@@ -52,7 +52,7 @@ export default {
   "themeConfig": {
     "image": "img/docusaurus-social-card.jpg",
     "navbar": {
-      "title": "Notes",
+      "title": "My Site",
       "logo": {
         "alt": "My Site Logo",
         "src": "img/logo.svg"
@@ -115,7 +115,7 @@ export default {
             },
             {
               "label": "GitHub",
-              "href": "https://github.com/Dimonch1k/asp.net_next.js-project/"
+              "href": "https://github.com/facebook/docusaurus"
             }
           ]
         }
