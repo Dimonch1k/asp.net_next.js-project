@@ -54,3 +54,39 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Ignore build results
+bin/
+obj/
+
+# User-specific files
+.vs/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Windows Installer Package files
+*.vsix
+
+# Windows user-specific files
+*.user
+*.userosscache
+*.suo
+*.userprefs
+
+# ASP.NET Scaffolding
+Scaffolding/
+
+# .NET Core SDK
+project.lock.json
+project.fragment.lock.json
+
+# JetBrains Rider
+.idea/
+
+# ASP.NET Core Web API specific files (optional)
+*.db
+*.bak
