@@ -93,5 +93,5 @@ project.fragment.lock.json
 
 
 # Project
-appsettings.json
-appsettings.Development.json
+# appsettings.json
+# appsettings.Development.json
