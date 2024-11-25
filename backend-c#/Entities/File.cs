@@ -17,4 +17,3 @@ public class File
   public List<Version> Versions { get; set; }
   public List<SharedFile> SharedFiles { get; set; } = new();
 }
-
