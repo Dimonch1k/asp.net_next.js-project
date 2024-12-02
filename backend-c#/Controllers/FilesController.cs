@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using backend_c_.DTO.File;
-using backend_c_.Services;
+using backend_c_.Services.Interfaces;
 
 namespace backend_c_.Controllers;
 
@@ -16,18 +16,18 @@ public class FilesController : ControllerBase
   }
 
   [HttpPost( "upload" )]
-  public IActionResult Upload( [FromBody] FileUploadDto data )
+  public IActionResult Upload( [FromBody] UploadFileDto data )
   {
     FileDto result = _fileService.Upload( data );
     return CreatedAtAction( nameof( GetMyFiles ), new { userId = result.UserId }, result );
   }
 
   [HttpPost( "update/{id}" )]
-  public IActionResult Update( int id, [FromBody] FileUpdateDto data )
+  public IActionResult Update( int id, [FromBody] UpdateFileDto data )
   {
     FileDto result = _fileService.Update( id, data );
-    return result == null 
-      ? NotFound() 
+    return result == null
+      ? NotFound()
       : Ok( result );
   }
 
@@ -35,8 +35,8 @@ public class FilesController : ControllerBase
   public IActionResult Remove( int id )
   {
     bool success = _fileService.Remove( id );
-    return !success 
-      ? NotFound() 
+    return !success
+      ? NotFound()
       : NoContent();
   }
 
