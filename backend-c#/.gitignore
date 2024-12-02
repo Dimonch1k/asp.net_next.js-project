@@ -90,8 +90,3 @@ project.fragment.lock.json
 # ASP.NET Core Web API specific files (optional)
 *.db
 *.bak
-
-
-# Project
-appsettings.json
-appsettings.Development.json

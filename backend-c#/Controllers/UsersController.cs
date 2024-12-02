@@ -1,4 +1,5 @@
-﻿using backend_c_.Entity;
+﻿using backend_c_.DTO.User;
+using backend_c_.Entity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace backend_c_.Controllers;
@@ -28,7 +29,7 @@ public class UsersController : ControllerBase
   {
     UserDto user = _userService.FindOne( id );
     return user == null
-      ? (IActionResult)NotFound()
+      ? NotFound()
       : Ok( user );
   }
 
@@ -37,7 +38,7 @@ public class UsersController : ControllerBase
   {
     UserDto updatedUser = _userService.Update( id, data );
     return updatedUser == null
-      ? (IActionResult)NotFound()
+      ? NotFound()
       : Ok( updatedUser );
   }
 

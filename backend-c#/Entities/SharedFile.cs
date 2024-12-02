@@ -8,8 +8,7 @@ public class SharedFile
 	public int SharedWithId { get; set; }
 	public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-	public File File { get; set; }
+	public MediaFile File { get; set; }
 	public User Owner { get; set; }
 	public User SharedWith { get; set; }
 }
-
