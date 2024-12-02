@@ -34,7 +34,7 @@ public class VersionsController : ControllerBase
   {
     FileVersionDto result = _versionService.FindOne( id );
     return result == null
-      ? (IActionResult)NotFound()
+      ? NotFound()
       : Ok( result );
   }
 

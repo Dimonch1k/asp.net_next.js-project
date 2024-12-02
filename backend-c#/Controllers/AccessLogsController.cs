@@ -27,7 +27,7 @@ public class AccessController : ControllerBase
   {
     AccessDto result = _accessLogService.FindOne( id );
     return result == null 
-      ? (IActionResult)NotFound() 
+      ? NotFound() 
       : Ok( result );
   }
 
@@ -43,7 +43,7 @@ public class AccessController : ControllerBase
   {
     AccessDto result = _accessLogService.Update( id, updateAccessDto );
     return result == null 
-      ? (IActionResult)NotFound() 
+      ? NotFound() 
       : Ok( result );
   }
 

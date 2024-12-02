@@ -27,7 +27,7 @@ public class FilesController : ControllerBase
   {
     FileDto result = _fileService.Update( id, data );
     return result == null 
-      ? (IActionResult)NotFound() 
+      ? NotFound() 
       : Ok( result );
   }
 
