@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using backend_c_.Dtos;
+using backend_c_.DTO.File;
 using backend_c_.Services;
 
 namespace backend_c_.Controllers;
