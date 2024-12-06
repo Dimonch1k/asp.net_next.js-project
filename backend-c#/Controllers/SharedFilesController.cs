@@ -19,7 +19,7 @@ public class SharedFilesController : ControllerBase
   public IActionResult Share( [FromBody] ShareFileDto data )
   {
     ShareFileDto result = _sharedFileService.Share( data );
-    return CreatedAtAction( nameof( Share ), new { id = result.Id }, result );
+    return CreatedAtAction( nameof( Share ), new { id = result.FileId }, result );
   }
 
   [HttpDelete( "remove/{id}" )]
