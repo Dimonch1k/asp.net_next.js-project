@@ -1,5 +1,6 @@
 ﻿using backend_c_.DTO.User;
 using backend_c_.Entity;
+using backend_c_.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace backend_c_.Controllers;
@@ -59,7 +60,7 @@ public class UsersController : ControllerBase
       return Conflict( new { Message = "Username or email already exists" } );
     }
 
-    User newUser = _userService.CreateUser( registerDto );
+    User newUser = _userService.Register( registerDto );
 
     return CreatedAtAction(
       nameof( Login ),
