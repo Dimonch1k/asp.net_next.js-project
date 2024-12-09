@@ -23,13 +23,21 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>( options =>
     options.UseNpgsql( builder.Configuration.GetConnectionString( "PostgreSqlConnection" ) ) );
 
-// Register FluentValidation validators (modernized approach)
+// Configure FluentValidation validators
 builder.Services.AddFluentValidation( fv =>
 {
   fv.RegisterValidatorsFromAssemblyContaining<LoginDtoValidator>();
 } );
 
+// Configure logging
+builder.Logging
+    .ClearProviders()
+    .AddConsole();
+
+
 WebApplication app = builder.Build();
+
+app.UseMiddleware<ExceptionMiddleware>();
 
 // Configure the HTTP request pipeline.
 app.UseAuthorization();
