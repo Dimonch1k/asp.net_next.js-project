@@ -9,6 +9,7 @@ public class User
   public string FullName { get; set; }
   public DateTime CreatedAt { get; set; }
   public DateTime UpdatedAt { get; set; }
+  public string TimeZoneId { get; set; }
 
   public List<MediaFile> Files { get; set; }
   public List<AccessLog> AccessLogs { get; set; }

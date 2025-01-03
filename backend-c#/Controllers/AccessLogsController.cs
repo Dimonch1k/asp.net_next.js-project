@@ -2,11 +2,13 @@
 using backend_c_.DTO.Access;
 using backend_c_.Service;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Authorization;
 
 namespace backend_c_.Controllers;
 
 [ApiController]
 [Route( "api/v1/[controller]" )]
+[Authorize]
 public class AccessController : ControllerBase
 {
   private readonly IAccessLogService _accessLogService;
@@ -18,7 +20,8 @@ public class AccessController : ControllerBase
     _logger = logger;
   }
 
-  [HttpGet( "findAll" )]
+  // Get All Access Logs
+  [HttpGet]
   public IActionResult FindAll( )
   {
     _logger.LogInformation( "Received request to find all access logs." );
@@ -30,7 +33,8 @@ public class AccessController : ControllerBase
     return Ok( result );
   }
 
-  [HttpGet( "findOne/{id}" )]
+  // Get Access Log by ID
+  [HttpGet( "{id}" )]
   public IActionResult FindOne( int id )
   {
     _logger.LogInformation( "Received request to find access log with ID: {AccessLogId}", id );
@@ -45,12 +49,14 @@ public class AccessController : ControllerBase
     return Ok( result );
   }
 
-  [HttpPost( "create" )]
+  // Create Access Log
+  [HttpPost]
   public IActionResult Create( [FromBody] CreateAccessLogDto createAccessLogDto )
   {
     _logger.LogInformation( "Received request to create access log for file: {FileId} by user: {UserId}.", createAccessLogDto.FileId, createAccessLogDto.UserId );
 
     AccessLogDto result = _accessLogService.Create( createAccessLogDto );
+
     _logger.LogInformation( "Access log created successfully with ID: {AccessLogId}.", result.Id );
     return CreatedAtAction(
       nameof( FindOne ),
@@ -59,7 +65,8 @@ public class AccessController : ControllerBase
     );
   }
 
-  [HttpPatch( "update/{id}" )]
+  // Update Access Log by ID
+  [HttpPatch( "{id}" )]
   public IActionResult Update( int id, [FromBody] UpdateAccessLogDto updateAccessLogDto )
   {
     _logger.LogInformation( "Received request to update access log with ID: {AccessLogId}.", id );
@@ -74,7 +81,8 @@ public class AccessController : ControllerBase
     return Ok( result );
   }
 
-  [HttpDelete( "remove/{id}" )]
+  // Delete Access Log by ID
+  [HttpDelete( "{id}" )]
   public IActionResult Remove( int id )
   {
     _logger.LogInformation( "Received request to remove access log with ID: {AccessLogId}.", id );
@@ -89,6 +97,7 @@ public class AccessController : ControllerBase
     return NoContent();
   }
 
+  // Get All Access Logs by File ID
   [HttpGet( "file/{fileId}" )]
   public IActionResult FindAccessByFile( int fileId )
   {
@@ -98,6 +107,7 @@ public class AccessController : ControllerBase
     return Ok( result );
   }
 
+  // Get All Access Logs by User ID
   [HttpGet( "user/{userId}" )]
   public IActionResult FindAccessByUser( int userId )
   {

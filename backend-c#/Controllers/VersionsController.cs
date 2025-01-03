@@ -2,94 +2,106 @@
 using backend_c_.DTO.Version;
 using backend_c_.Service;
 using Microsoft.Extensions.Logging;
+using backend_c_.Utilities;
 
-namespace backend_c_.Controllers
+namespace backend_c_.Controllers;
+
+[ApiController]
+[Route( "api/v1/[controller]" )]
+public class VersionsController : ControllerBase
 {
-  [ApiController]
-  [Route( "api/v1/[controller]" )]
-  public class VersionsController : ControllerBase
+  private readonly IVersionService _versionService;
+  private readonly ILogger<VersionsController> _logger;
+
+  public VersionsController( IVersionService versionService, ILogger<VersionsController> logger )
   {
-    private readonly IVersionService _versionService;
-    private readonly ILogger<VersionsController> _logger;
+    _versionService = versionService;
+    _logger = logger;
+  }
 
-    public VersionsController( IVersionService versionService, ILogger<VersionsController> logger )
+  // Create File Version
+  [HttpPost]
+  public IActionResult Create( [FromBody] CreateFileVersionDto data )
+  {
+    LoggingHelper.LogRequest( _logger, "Create file version", new { FileId = data.FileId } );
+
+    FileVersionDto result = _versionService.Create( data );
+
+    LoggingHelper.LogSuccess( _logger, "File version created successfully", new { VersionId = result.Id } );
+    return CreatedAtAction(
+      nameof( FindOne ),
+      new { id = result.Id },
+      result
+    );
+  }
+
+  // Get All File Versions
+  [HttpGet]
+  public IActionResult FindAll( )
+  {
+    LoggingHelper.LogRequest( _logger, "Find all file versions" );
+
+    IEnumerable<FileVersionDto> result = _versionService.FindAll();
+
+    LoggingHelper.LogSuccess( _logger, "Returning file versions", new { FileVersionCount = result.Count() } );
+    return Ok( result );
+  }
+
+  // Get One File Version
+  [HttpGet( "{id}" )]
+  public IActionResult FindOne( int id )
+  {
+    LoggingHelper.LogRequest( _logger, "Find file version by ID", new { VersionId = id } );
+
+    FileVersionDto result = _versionService.FindOne( id );
+    if ( result == null )
     {
-      _versionService = versionService;
-      _logger = logger;
+      LoggingHelper.LogFailure( _logger, "File version not found", new { VersionId = id } );
+      return NotFound();
     }
+    LoggingHelper.LogSuccess( _logger, "Returning file version", new { VersionId = id } );
+    return Ok( result );
+  }
 
-    [HttpPost( "create" )]
-    public IActionResult Create( [FromBody] CreateFileVersionDto data )
+  // Update File Version
+  [HttpPatch( "{id}" )]
+  public IActionResult Update( int id, [FromBody] UpdateFileVersionDto data )
+  {
+    LoggingHelper.LogRequest( _logger, "Update file version", new { VersionId = id } );
+
+    FileVersionDto result = _versionService.Update( id, data );
+    if ( result == null )
     {
-      _logger.LogInformation( "Received request to create file version for file with ID: {FileId}.", data.FileId );
-
-      FileVersionDto result = _versionService.Create( data );
-      _logger.LogInformation( "File version created successfully with ID: {VersionId}.", result.Id );
-      return CreatedAtAction( nameof( FindOne ), new { id = result.Id }, result );
+      LoggingHelper.LogFailure( _logger, "File version not found", new { VersionId = id } );
+      return NotFound();
     }
+    LoggingHelper.LogSuccess( _logger, "File version updated successfully", new { VersionId = id } );
+    return Ok( result );
+  }
 
-    [HttpGet( "findAll" )]
-    public IActionResult FindAll( )
+  // Delete File Version
+  [HttpDelete( "{id}" )]
+  public IActionResult Remove( int id )
+  {
+    LoggingHelper.LogRequest( _logger, "Remove file version", new { VersionId = id } );
+
+    bool success = _versionService.Remove( id );
+    if ( !success )
     {
-      _logger.LogInformation( "Received request to find all file versions." );
-
-      IEnumerable<FileVersionDto> result = _versionService.FindAll();
-      _logger.LogInformation( "Returning {FileVersionCount} file versions.", result.Count() );
-      return Ok( result );
+      LoggingHelper.LogFailure( _logger, "Failed to remove file version. Version not found", new { VersionId = id } );
+      return NotFound();
     }
+    LoggingHelper.LogSuccess( _logger, "File version removed successfully", new { VersionId = id } );
+    return NoContent();
+  }
 
-    [HttpGet( "findOne/{id}" )]
-    public IActionResult FindOne( int id )
-    {
-      _logger.LogInformation( "Received request to find file version with ID: {VersionId}", id );
+  // Get All Versions By File ID
+  [HttpGet( "findByFileId/{fileId}" )]
+  public IActionResult FindByFileId( int fileId )
+  {
+    LoggingHelper.LogRequest( _logger, "Find versions by file ID", new { FileId = fileId } );
 
-      FileVersionDto result = _versionService.FindOne( id );
-      if ( result == null )
-      {
-        _logger.LogWarning( "File version with ID {VersionId} not found.", id );
-        return NotFound();
-      }
-      _logger.LogInformation( "Returning file version with ID: {VersionId}.", id );
-      return Ok( result );
-    }
-
-    [HttpPatch( "update/{id}" )]
-    public IActionResult Update( int id, [FromBody] UpdateFileVersionDto data )
-    {
-      _logger.LogInformation( "Received request to update file version with ID: {VersionId}.", id );
-
-      FileVersionDto result = _versionService.Update( id, data );
-      if ( result == null )
-      {
-        _logger.LogWarning( "File version with ID {VersionId} not found.", id );
-        return NotFound();
-      }
-      _logger.LogInformation( "File version with ID {VersionId} updated successfully.", id );
-      return Ok( result );
-    }
-
-    [HttpDelete( "remove/{id}" )]
-    public IActionResult Remove( int id )
-    {
-      _logger.LogInformation( "Received request to remove file version with ID: {VersionId}.", id );
-
-      bool success = _versionService.Remove( id );
-      if ( !success )
-      {
-        _logger.LogWarning( "Failed to remove file version with ID {VersionId}. File version not found.", id );
-        return NotFound();
-      }
-      _logger.LogInformation( "File version with ID {VersionId} removed successfully.", id );
-      return NoContent();
-    }
-
-    [HttpGet( "findByFileId/{fileId}" )]
-    public IActionResult FindByFileId( int fileId )
-    {
-      _logger.LogInformation( "Received request to find versions for file with ID: {FileId}.", fileId );
-
-      IEnumerable<FileVersionDto> result = _versionService.FindByFileId( fileId );
-      return Ok( result );
-    }
+    IEnumerable<FileVersionDto> result = _versionService.FindByFileId( fileId );
+    return Ok( result );
   }
 }
