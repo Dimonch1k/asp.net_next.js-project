@@ -7,6 +7,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -39,6 +40,10 @@ builder.Configuration["ConnectionStrings:PostgreSqlConnection"] = postgresConnec
 builder.Services.AddControllers();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IFileService, MediaFileService>();
+builder.Services.AddScoped<ISharedFileService, SharedFileService>();
+builder.Services.AddScoped<IAccessLogService, AccessLogService>();
+builder.Services.AddScoped<IVersionService, VersionService>();
 
 // Configure DbContext for PostgreSQL
 builder.Services.AddDbContext<AppDbContext>( options =>
@@ -56,12 +61,16 @@ builder.Logging
     .AddConsole();
 
 // Configure JWT authentication
-builder.Services.AddAuthentication( JwtBearerDefaults.AuthenticationScheme )
+builder.Services.AddAuthentication( options =>
+{
+  options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+  options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+} )
   .AddJwtBearer( options =>
   {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-      ValidateIssuerSigningKey = true,
+     // ValidateIssuerSigningKey = true,
       IssuerSigningKey = new SymmetricSecurityKey( Encoding.ASCII.GetBytes( jwtSecret ) ),
       ValidateIssuer = false,
       ValidateAudience = false
@@ -71,6 +80,7 @@ builder.Services.AddAuthentication( JwtBearerDefaults.AuthenticationScheme )
     {
       OnAuthenticationFailed = context =>
       {
+        Console.WriteLine( context.Request.Headers.Authorization );
         Console.WriteLine( "\n\nAuthentication failed: " + context.Exception.Message );
         return Task.CompletedTask;
       },
@@ -91,6 +101,8 @@ app.UseHttpsRedirection();
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseStaticFiles();
 
 app.MapControllers();
 
