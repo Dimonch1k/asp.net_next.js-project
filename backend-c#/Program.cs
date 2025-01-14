@@ -70,7 +70,6 @@ builder.Services.AddAuthentication( options =>
   {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-     // ValidateIssuerSigningKey = true,
       IssuerSigningKey = new SymmetricSecurityKey( Encoding.ASCII.GetBytes( jwtSecret ) ),
       ValidateIssuer = false,
       ValidateAudience = false
@@ -80,7 +79,6 @@ builder.Services.AddAuthentication( options =>
     {
       OnAuthenticationFailed = context =>
       {
-        Console.WriteLine( context.Request.Headers.Authorization );
         Console.WriteLine( "\n\nAuthentication failed: " + context.Exception.Message );
         return Task.CompletedTask;
       },

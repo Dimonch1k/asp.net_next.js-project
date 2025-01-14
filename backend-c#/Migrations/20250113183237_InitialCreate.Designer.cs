@@ -12,8 +12,8 @@ using backend_c_;
 namespace backend_c_.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241216173116_added timeZoneId to Users table")]
-    partial class addedtimeZoneIdtoUserstable
+    [Migration("20250113183237_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -36,9 +36,8 @@ namespace backend_c_.Migrations
                     b.Property<DateTime>("AccessTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("AccessType")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("AccessType")
+                        .HasColumnType("integer");
 
                     b.Property<int>("FileId")
                         .HasColumnType("integer");

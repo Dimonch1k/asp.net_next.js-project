@@ -21,24 +21,40 @@ public class MediaFilesController : ControllerBase
     _logger = logger;
   }
 
-  // Upload File
   [HttpPost]
-  public IActionResult Upload( [FromBody] UploadFileDto data )
+  public async Task<IActionResult> Upload( IFormFile file, [FromForm] int userId )
   {
-    LoggingHelper.LogRequest( _logger, "Received request to upload a file." );
+    LoggingHelper.LogRequest( _logger, "upload a file." );
 
-    FileDto result = _fileService.Upload( data );
+    if ( file == null || file.Length == 0 )
+    {
+      LoggingHelper.LogFailure( _logger, "No file provided", new { UserId = userId } );
 
-    LoggingHelper.LogSuccess( _logger, "File uploaded successfully", new { FileId = result.Id } );
+      return BadRequest( "No file uploaded." );
+    }
 
-    return CreatedAtAction(
-      nameof( GetMyFiles ),
-      new { userId = result.UserId },
-      result
-    );
+    UploadFileDto fileDto = new();
+    fileDto.UserId = userId;
+
+    using ( MemoryStream memoryStream = new MemoryStream() )
+    {
+      await file.CopyToAsync( memoryStream );
+      fileDto.FileData = memoryStream.ToArray();
+    }
+
+    try
+    {
+      FileDto result = _fileService.Upload( fileDto, file );
+      LoggingHelper.LogSuccess( _logger, "File uploaded successfully", new { FileId = result.Id } );
+      return Ok( result );
+    }
+    catch ( Exception ex )
+    {
+      LoggingHelper.LogFailure( _logger, "File upload failed", new { Error = ex.Message } );
+      return StatusCode( 500, "Internal server error" );
+    }
   }
 
-  // Update File
   [HttpPost( "{id}" )]
   public IActionResult Update( int id, [FromBody] UpdateFileDto data )
   {
@@ -54,7 +70,6 @@ public class MediaFilesController : ControllerBase
     return Ok( result );
   }
 
-  // Delete File
   [HttpDelete( "{id}" )]
   public IActionResult Remove( int id )
   {
@@ -70,7 +85,6 @@ public class MediaFilesController : ControllerBase
     return NoContent();
   }
 
-  // Get All User Files
   [HttpGet( "my-files/{userId}" )]
   public IActionResult GetMyFiles( int userId )
   {
@@ -83,7 +97,6 @@ public class MediaFilesController : ControllerBase
     return Ok( result );
   }
 
-  // Get All Files Shared To Me
   [HttpGet( "shared-to-me/{userId}" )]
   public IActionResult GetFilesSharedToMe( int userId )
   {
@@ -96,7 +109,6 @@ public class MediaFilesController : ControllerBase
     return Ok( result );
   }
 
-  // Get All Files Shared By Me
   [HttpGet( "shared-by-me/{userId}" )]
   public IActionResult GetFilesSharedByMe( int userId )
   {
