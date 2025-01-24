@@ -33,9 +33,8 @@ namespace backend_c_.Migrations
                     b.Property<DateTime>("AccessTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("AccessType")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("AccessType")
+                        .HasColumnType("integer");
 
                     b.Property<int>("FileId")
                         .HasColumnType("integer");

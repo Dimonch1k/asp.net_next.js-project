@@ -23,7 +23,8 @@ namespace backend_c_.Migrations
                     Email = table.Column<string>(type: "text", nullable: false),
                     FullName = table.Column<string>(type: "text", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    TimeZoneId = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -70,9 +71,9 @@ namespace backend_c_.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     FileId = table.Column<int>(type: "integer", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: false),
-                    AccessType = table.Column<string>(type: "text", nullable: false),
+                    AccessType = table.Column<int>(type: "integer", nullable: false),
                     AccessTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    FileId1 = table.Column<int>(type: "integer", nullable: true),
+                    MediaFileId = table.Column<int>(type: "integer", nullable: true),
                     UserId1 = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
@@ -85,8 +86,8 @@ namespace backend_c_.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_AccessLogs_Files_FileId1",
-                        column: x => x.FileId1,
+                        name: "FK_AccessLogs_Files_MediaFileId",
+                        column: x => x.MediaFileId,
                         principalTable: "Files",
                         principalColumn: "Id");
                     table.ForeignKey(
@@ -112,7 +113,7 @@ namespace backend_c_.Migrations
                     OwnerId = table.Column<int>(type: "integer", nullable: false),
                     SharedWithId = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    FileId1 = table.Column<int>(type: "integer", nullable: true),
+                    MediaFileId = table.Column<int>(type: "integer", nullable: true),
                     UserId = table.Column<int>(type: "integer", nullable: true),
                     UserId1 = table.Column<int>(type: "integer", nullable: true)
                 },
@@ -126,8 +127,8 @@ namespace backend_c_.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_SharedFiles_Files_FileId1",
-                        column: x => x.FileId1,
+                        name: "FK_SharedFiles_Files_MediaFileId",
+                        column: x => x.MediaFileId,
                         principalTable: "Files",
                         principalColumn: "Id");
                     table.ForeignKey(
@@ -164,7 +165,7 @@ namespace backend_c_.Migrations
                     VersionName = table.Column<string>(type: "text", nullable: false),
                     VersionPath = table.Column<string>(type: "text", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    FileId1 = table.Column<int>(type: "integer", nullable: true)
+                    MediaFileId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -176,8 +177,8 @@ namespace backend_c_.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Versions_Files_FileId1",
-                        column: x => x.FileId1,
+                        name: "FK_Versions_Files_MediaFileId",
+                        column: x => x.MediaFileId,
                         principalTable: "Files",
                         principalColumn: "Id");
                 });
@@ -188,9 +189,9 @@ namespace backend_c_.Migrations
                 column: "FileId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AccessLogs_FileId1",
+                name: "IX_AccessLogs_MediaFileId",
                 table: "AccessLogs",
-                column: "FileId1");
+                column: "MediaFileId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AccessLogs_UserId",
@@ -218,9 +219,9 @@ namespace backend_c_.Migrations
                 column: "FileId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SharedFiles_FileId1",
+                name: "IX_SharedFiles_MediaFileId",
                 table: "SharedFiles",
-                column: "FileId1");
+                column: "MediaFileId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SharedFiles_OwnerId",
@@ -248,9 +249,9 @@ namespace backend_c_.Migrations
                 column: "FileId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Versions_FileId1",
+                name: "IX_Versions_MediaFileId",
                 table: "Versions",
-                column: "FileId1");
+                column: "MediaFileId");
         }
 
         /// <inheritdoc />

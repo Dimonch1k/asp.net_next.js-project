@@ -11,20 +11,9 @@ public class UploadFileValidator : AbstractValidator<UploadFileDto>
     RuleFor( x => x.UserId )
       .GreaterThan( 0 ).WithMessage( "UserId must be a positive number." );
 
-    RuleFor( x => x.FileName )
-      .NotEmpty().WithMessage( "FileName is required." )
-      .MaximumLength( 255 ).WithMessage( "FileName cannot exceed 255 characters." );
-
-    RuleFor( x => x.FilePath )
-      .NotEmpty().WithMessage( "FilePath is required." )
-      .MaximumLength( 500 ).WithMessage( "FilePath cannot exceed 500 characters." );
-
-    RuleFor( x => x.FileSize )
-      .GreaterThan( 0 ).WithMessage( "FileSize must be a positive number." )
-      .LessThanOrEqualTo( 10485760 ).WithMessage( "FileSize cannot exceed 10 MB." );
-
-    RuleFor( x => x.FileType )
-      .NotEmpty().WithMessage( "FileType is required." )
-      .Must( ValidationHelpers.BeAValidFileType ).WithMessage( "Invalid FileType." );
+    RuleFor( x => x.FileData )
+      .NotNull().WithMessage( "FileData is required." )
+      .Must( file => file != null && file.Length > 0 ).WithMessage( "FileSize must be a positive number." )
+      .Must( file => file != null && file.Length <= 10485760 ).WithMessage( "FileSize cannot exceed 10 MB." );
   }
 }
