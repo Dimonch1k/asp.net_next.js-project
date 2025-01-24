@@ -24,7 +24,6 @@ public class UsersController : ControllerBase
     _logger = logger;
   }
 
-  // Get All Users
   [HttpGet]
   public IActionResult FindAll( )
   {
@@ -36,7 +35,6 @@ public class UsersController : ControllerBase
     return Ok( users );
   }
 
-  // Get One User
   [HttpGet( "{id}" )]
   public IActionResult FindOne( int id )
   {
@@ -52,7 +50,6 @@ public class UsersController : ControllerBase
     return Ok( user );
   }
 
-  // Update User
   [HttpPatch( "{id}" )]
   public IActionResult Update( int id, [FromBody] UpdateUserDto data )
   {
@@ -68,7 +65,6 @@ public class UsersController : ControllerBase
     return Ok( updatedUser );
   }
 
-  // Delete User
   [HttpDelete( "{id}" )]
   public IActionResult Remove( int id )
   {
@@ -84,7 +80,6 @@ public class UsersController : ControllerBase
     return NoContent();
   }
 
-  // Registration
   [AllowAnonymous]
   [HttpPost( "register" )]
   public IActionResult Register( [FromBody] RegisterDto registerDto )
@@ -109,7 +104,6 @@ public class UsersController : ControllerBase
     );
   }
 
-  // Login
   [AllowAnonymous]
   [HttpPost( "login" )]
   public IActionResult Login( [FromBody] LoginDto loginDto )
@@ -129,7 +123,6 @@ public class UsersController : ControllerBase
     return Ok( new { Token = token } );
   }
 
-  // Authorization
   [AllowAnonymous]
   [HttpPost( "auth" )]
   public IActionResult Authorize( [FromBody] AuthDto authDto )

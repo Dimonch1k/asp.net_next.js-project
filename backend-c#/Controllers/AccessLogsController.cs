@@ -20,7 +20,6 @@ public class AccessController : ControllerBase
     _logger = logger;
   }
 
-  // Get All Access Logs
   [HttpGet]
   public IActionResult FindAll( )
   {
@@ -33,7 +32,6 @@ public class AccessController : ControllerBase
     return Ok( result );
   }
 
-  // Get Access Log by ID
   [HttpGet( "{id}" )]
   public IActionResult FindOne( int id )
   {
@@ -49,7 +47,6 @@ public class AccessController : ControllerBase
     return Ok( result );
   }
 
-  // Create Access Log
   [HttpPost]
   public IActionResult Create( [FromBody] CreateAccessLogDto createAccessLogDto )
   {
@@ -65,7 +62,6 @@ public class AccessController : ControllerBase
     );
   }
 
-  // Update Access Log by ID
   [HttpPatch( "{id}" )]
   public IActionResult Update( int id, [FromBody] UpdateAccessLogDto updateAccessLogDto )
   {
@@ -81,7 +77,6 @@ public class AccessController : ControllerBase
     return Ok( result );
   }
 
-  // Delete Access Log by ID
   [HttpDelete( "{id}" )]
   public IActionResult Remove( int id )
   {
@@ -97,7 +92,6 @@ public class AccessController : ControllerBase
     return NoContent();
   }
 
-  // Get All Access Logs by File ID
   [HttpGet( "file/{fileId}" )]
   public IActionResult FindAccessByFile( int fileId )
   {
@@ -107,7 +101,6 @@ public class AccessController : ControllerBase
     return Ok( result );
   }
 
-  // Get All Access Logs by User ID
   [HttpGet( "user/{userId}" )]
   public IActionResult FindAccessByUser( int userId )
   {

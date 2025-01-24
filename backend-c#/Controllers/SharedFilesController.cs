@@ -21,7 +21,6 @@ public class SharedFilesController : ControllerBase
     _logger = logger;
   }
 
-  // Share File
   [HttpPost]
   public IActionResult Share( [FromBody] ShareFileDto data )
   {
@@ -37,7 +36,6 @@ public class SharedFilesController : ControllerBase
     );
   }
 
-  // Delete Shared File
   [HttpDelete( "{id}" )]
   public IActionResult Remove( int id )
   {

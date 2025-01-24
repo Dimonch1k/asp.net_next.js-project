@@ -19,7 +19,6 @@ public class VersionsController : ControllerBase
     _logger = logger;
   }
 
-  // Create File Version
   [HttpPost]
   public IActionResult Create( [FromBody] CreateFileVersionDto data )
   {
@@ -35,7 +34,6 @@ public class VersionsController : ControllerBase
     );
   }
 
-  // Get All File Versions
   [HttpGet]
   public IActionResult FindAll( )
   {
@@ -47,7 +45,6 @@ public class VersionsController : ControllerBase
     return Ok( result );
   }
 
-  // Get One File Version
   [HttpGet( "{id}" )]
   public IActionResult FindOne( int id )
   {
@@ -63,7 +60,6 @@ public class VersionsController : ControllerBase
     return Ok( result );
   }
 
-  // Update File Version
   [HttpPatch( "{id}" )]
   public IActionResult Update( int id, [FromBody] UpdateFileVersionDto data )
   {
@@ -79,7 +75,6 @@ public class VersionsController : ControllerBase
     return Ok( result );
   }
 
-  // Delete File Version
   [HttpDelete( "{id}" )]
   public IActionResult Remove( int id )
   {
@@ -95,7 +90,6 @@ public class VersionsController : ControllerBase
     return NoContent();
   }
 
-  // Get All Versions By File ID
   [HttpGet( "findByFileId/{fileId}" )]
   public IActionResult FindByFileId( int fileId )
   {
