@@ -2,12 +2,7 @@
 
 public enum AccessType
 {
-  Read,
-  Write,
-  Delete,
-  Download,
-  Upload,
-  Share,
-  Move,
-  Rename
+  read,
+  write,
+  download,
 }

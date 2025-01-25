@@ -29,10 +29,10 @@ public class UsersController : ControllerBase
   {
     LoggingHelper.LogRequest( _logger, "find all users" );
 
-    List<UserDto> users = _userService.FindAll();
+    List<UserDto> usersDto = _userService.FindAll();
 
-    LoggingHelper.LogSuccess( _logger, "Returning users", new { Count = users.Count } );
-    return Ok( users );
+    LoggingHelper.LogSuccess( _logger, "Returning users", new { Count = usersDto.Count } );
+    return Ok( usersDto );
   }
 
   [HttpGet( "{id}" )]
@@ -40,14 +40,14 @@ public class UsersController : ControllerBase
   {
     LoggingHelper.LogRequest( _logger, $"find user with ID: {id}" );
 
-    UserDto user = _userService.FindOne( id );
-    if ( user == null )
+    UserDto userDto = _userService.FindOne( id );
+    if ( userDto == null )
     {
       LoggingHelper.LogFailure( _logger, "User not found", new { Id = id } );
       return NotFound();
     }
     LoggingHelper.LogSuccess( _logger, "Returning user", new { Id = id } );
-    return Ok( user );
+    return Ok( userDto );
   }
 
   [HttpPatch( "{id}" )]
@@ -55,14 +55,14 @@ public class UsersController : ControllerBase
   {
     LoggingHelper.LogRequest( _logger, $"update user with ID: {id}", data );
 
-    UserDto updatedUser = _userService.Update( id, data );
-    if ( updatedUser == null )
+    UserDto updatedUserDto = _userService.Update( id, data );
+    if ( updatedUserDto == null )
     {
       LoggingHelper.LogFailure( _logger, "User not found", new { Id = id } );
       return NotFound();
     }
     LoggingHelper.LogSuccess( _logger, "User updated successfully", new { Id = id } );
-    return Ok( updatedUser );
+    return Ok( updatedUserDto );
   }
 
   [HttpDelete( "{id}" )]
@@ -70,14 +70,14 @@ public class UsersController : ControllerBase
   {
     LoggingHelper.LogRequest( _logger, $"remove user with ID: {id}" );
 
-    bool success = _userService.Remove( id );
-    if ( !success )
+    UserDto removedUserDto = _userService.Remove( id );
+    if ( removedUserDto == null )
     {
       LoggingHelper.LogFailure( _logger, "Failed to remove user. User not found", new { Id = id } );
       return NotFound();
     }
     LoggingHelper.LogSuccess( _logger, "User removed successfully", new { Id = id } );
-    return NoContent();
+    return Ok(removedUserDto);
   }
 
   [AllowAnonymous]
@@ -108,9 +108,9 @@ public class UsersController : ControllerBase
   [HttpPost( "login" )]
   public IActionResult Login( [FromBody] LoginDto loginDto )
   {
-    LoggingHelper.LogRequest( _logger, "login request", loginDto );
+    LoggingHelper.LogRequest( _logger, "login", loginDto );
 
-    string token = _authService.Login( loginDto );
+    string? token = _authService.Login( loginDto );
     if ( string.IsNullOrEmpty( token ) )
     {
       LoggingHelper.LogFailure( _logger, "Invalid login attempt", loginDto );
@@ -127,7 +127,7 @@ public class UsersController : ControllerBase
   [HttpPost( "auth" )]
   public IActionResult Authorize( [FromBody] AuthDto authDto )
   {
-    LoggingHelper.LogRequest( _logger, "authorization request", authDto );
+    LoggingHelper.LogRequest( _logger, "authorize", authDto );
 
     bool isAuthorized = _authService.Authorize( authDto );
     if ( !isAuthorized )

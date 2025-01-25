@@ -11,7 +11,8 @@ public class AppDbContext : DbContext
   public DbSet<MediaFile> Files { get; set; }
   public DbSet<SharedFile> SharedFiles { get; set; }
   public DbSet<AccessLog> AccessLogs { get; set; }
-  public DbSet<FileVersion> Versions { get; set; }
+  public DbSet<FileVersion> FileVersions { get; set; }
+  public DbSet<Notification> Notifications { get; set; }
 
   protected override void OnModelCreating( ModelBuilder modelBuilder )
   {
@@ -56,5 +57,10 @@ public class AppDbContext : DbContext
       .WithMany()
       .HasForeignKey( v => v.FileId )
       .OnDelete( DeleteBehavior.Cascade );
+    modelBuilder.Entity<Notification>()
+        .HasOne( n => n.User )
+        .WithMany()
+        .HasForeignKey( n => n.UserId )
+        .OnDelete( DeleteBehavior.Cascade );
   }
 }
