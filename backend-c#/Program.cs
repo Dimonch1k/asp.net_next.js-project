@@ -44,6 +44,7 @@ builder.Services.AddScoped<IFileService, MediaFileService>();
 builder.Services.AddScoped<ISharedFileService, SharedFileService>();
 builder.Services.AddScoped<IAccessLogService, AccessLogService>();
 builder.Services.AddScoped<IVersionService, VersionService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // Configure DbContext for PostgreSQL
 builder.Services.AddDbContext<AppDbContext>( options =>

@@ -3,18 +3,19 @@ using backend_c_.DTO.Access;
 using backend_c_.Service;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace backend_c_.Controllers;
 
 [ApiController]
 [Route( "api/v1/[controller]" )]
 [Authorize]
-public class AccessController : ControllerBase
+public class AccessLogsController : ControllerBase
 {
   private readonly IAccessLogService _accessLogService;
-  private readonly ILogger<AccessController> _logger;
+  private readonly ILogger<AccessLogsController> _logger;
 
-  public AccessController( IAccessLogService accessLogService, ILogger<AccessController> logger )
+  public AccessLogsController( IAccessLogService accessLogService, ILogger<AccessLogsController> logger )
   {
     _accessLogService = accessLogService;
     _logger = logger;
@@ -23,42 +24,42 @@ public class AccessController : ControllerBase
   [HttpGet]
   public IActionResult FindAll( )
   {
-    _logger.LogInformation( "Received request to find all access logs." );
+    _logger.LogInformation( "find all access logs." );
 
-    IEnumerable<AccessLogDto> result = _accessLogService.FindAll();
+    IEnumerable<AccessLogDto> accessLogsDto = _accessLogService.FindAll();
 
-    _logger.LogInformation( "Returning {AccessLogCount} access logs.", result.Count() );
+    _logger.LogInformation( "Returning {AccessLogCount} access logs.", accessLogsDto.Count() );
 
-    return Ok( result );
+    return Ok( accessLogsDto );
   }
 
   [HttpGet( "{id}" )]
   public IActionResult FindOne( int id )
   {
-    _logger.LogInformation( "Received request to find access log with ID: {AccessLogId}", id );
+    _logger.LogInformation( "find access log with ID: {AccessLogId}", id );
 
-    AccessLogDto result = _accessLogService.FindOne( id );
-    if ( result == null )
+    AccessLogDto accessLogDto = _accessLogService.FindOne( id );
+    if ( accessLogDto == null )
     {
       _logger.LogWarning( "Access log with ID {AccessLogId} not found.", id );
       return NotFound();
     }
     _logger.LogInformation( "Returning access log with ID: {AccessLogId}.", id );
-    return Ok( result );
+    return Ok( accessLogDto );
   }
 
   [HttpPost]
   public IActionResult Create( [FromBody] CreateAccessLogDto createAccessLogDto )
   {
-    _logger.LogInformation( "Received request to create access log for file: {FileId} by user: {UserId}.", createAccessLogDto.FileId, createAccessLogDto.UserId );
+    _logger.LogInformation( "create access log for file: {FileId} by user: {UserId}.", createAccessLogDto.FileId, createAccessLogDto.UserId );
 
-    AccessLogDto result = _accessLogService.Create( createAccessLogDto );
+    AccessLogDto accessLogDto = _accessLogService.Create( createAccessLogDto );
 
-    _logger.LogInformation( "Access log created successfully with ID: {AccessLogId}.", result.Id );
+    _logger.LogInformation( "Access log created successfully with ID: {AccessLogId}.", accessLogDto.Id );
     return CreatedAtAction(
       nameof( FindOne ),
-      new { id = result.Id },
-      result
+      new { id = accessLogDto.Id },
+      accessLogDto
     );
   }
 
@@ -67,14 +68,15 @@ public class AccessController : ControllerBase
   {
     _logger.LogInformation( "Received request to update access log with ID: {AccessLogId}.", id );
 
-    AccessLogDto result = _accessLogService.Update( id, updateAccessLogDto );
-    if ( result == null )
+    AccessLogDto accessLogDto = _accessLogService.Update( id, updateAccessLogDto );
+    if ( accessLogDto == null )
     {
       _logger.LogWarning( "Access log with ID {AccessLogId} not found.", id );
       return NotFound();
     }
+
     _logger.LogInformation( "Access log with ID {AccessLogId} updated successfully.", id );
-    return Ok( result );
+    return Ok( accessLogDto );
   }
 
   [HttpDelete( "{id}" )]
@@ -82,14 +84,14 @@ public class AccessController : ControllerBase
   {
     _logger.LogInformation( "Received request to remove access log with ID: {AccessLogId}.", id );
 
-    bool success = _accessLogService.Remove( id );
-    if ( !success )
+    AccessLogDto removedAccessLogDto = _accessLogService.Remove( id );
+    if ( removedAccessLogDto == null )
     {
       _logger.LogWarning( "Failed to remove access log with ID {AccessLogId}. Access log not found.", id );
       return NotFound();
     }
     _logger.LogInformation( "Access log with ID {AccessLogId} removed successfully.", id );
-    return NoContent();
+    return Ok(removedAccessLogDto);
   }
 
   [HttpGet( "file/{fileId}" )]
@@ -97,8 +99,7 @@ public class AccessController : ControllerBase
   {
     _logger.LogInformation( "Received request to find access logs for file with ID: {FileId}.", fileId );
 
-    IEnumerable<AccessLogDto> result = _accessLogService.FindAccessByFile( fileId );
-    return Ok( result );
+    return Ok( _accessLogService.FindAccessByFile( fileId ) );
   }
 
   [HttpGet( "user/{userId}" )]
@@ -106,7 +107,6 @@ public class AccessController : ControllerBase
   {
     _logger.LogInformation( "Received request to find access logs for user with ID: {UserId}.", userId );
 
-    IEnumerable<AccessLogDto> result = _accessLogService.FindAccessByUser( userId );
-    return Ok( result );
+    return Ok( _accessLogService.FindAccessByUser( userId ) );
   }
 }

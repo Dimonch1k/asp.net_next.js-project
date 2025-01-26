@@ -4,6 +4,7 @@ using backend_c_.Service;
 using Microsoft.Extensions.Logging;
 using backend_c_.Utilities;
 using Microsoft.AspNetCore.Authorization;
+using backend_c_.DTO.SharedFile;
 
 namespace backend_c_.Controllers;
 
@@ -33,91 +34,90 @@ public class MediaFilesController : ControllerBase
       return BadRequest( "No file uploaded." );
     }
 
-    UploadFileDto fileDto = new();
-    fileDto.UserId = userId;
+    UploadFileDto uploadFileDto = new();
+    uploadFileDto.UserId = userId;
 
     using ( MemoryStream memoryStream = new MemoryStream() )
     {
       await file.CopyToAsync( memoryStream );
-      fileDto.FileData = memoryStream.ToArray();
+      uploadFileDto.FileData = memoryStream.ToArray();
     }
 
-    try
+    FileDto? uploadedFileDto = _fileService.Upload( uploadFileDto, file );
+
+    if ( uploadedFileDto == null )
     {
-      FileDto result = _fileService.Upload( fileDto, file );
-      LoggingHelper.LogSuccess( _logger, "File uploaded successfully", new { FileId = result.Id } );
-      return Ok( result );
-    }
-    catch ( Exception ex )
-    {
-      LoggingHelper.LogFailure( _logger, "File upload failed", new { Error = ex.Message } );
+      LoggingHelper.LogFailure( _logger, "File upload failed" );
+
       return StatusCode( 500, "Internal server error" );
     }
+    LoggingHelper.LogSuccess( _logger, "File uploaded successfully", new { FileId = uploadedFileDto.Id } );
+    return Ok( uploadedFileDto );
   }
 
   [HttpPost( "{id}" )]
   public IActionResult Update( int id, [FromBody] UpdateFileDto data )
   {
-    LoggingHelper.LogRequest( _logger, "Received request to update file", new { FileId = id } );
+    LoggingHelper.LogRequest( _logger, "update file", new { FileId = id } );
 
-    FileDto result = _fileService.Update( id, data );
-    if ( result == null )
+    FileDto fileDto = _fileService.Update( id, data );
+    if ( fileDto == null )
     {
       LoggingHelper.LogFailure( _logger, "File not found", new { FileId = id } );
       return NotFound();
     }
     LoggingHelper.LogSuccess( _logger, "File updated successfully", new { FileId = id } );
-    return Ok( result );
+    return Ok( fileDto );
   }
 
   [HttpDelete( "{id}" )]
   public IActionResult Remove( int id )
   {
-    LoggingHelper.LogRequest( _logger, "Received request to remove file", new { FileId = id } );
+    LoggingHelper.LogRequest( _logger, "remove file", new { FileId = id } );
 
-    bool success = _fileService.Remove( id );
-    if ( !success )
+    FileDto fileDto = _fileService.Remove( id );
+    if ( fileDto == null )
     {
       LoggingHelper.LogFailure( _logger, "Failed to remove file. File not found", new { FileId = id } );
       return NotFound();
     }
     LoggingHelper.LogSuccess( _logger, "File removed successfully", new { FileId = id } );
-    return NoContent();
+    return Ok( fileDto );
   }
 
   [HttpGet( "my-files/{userId}" )]
   public IActionResult GetMyFiles( int userId )
   {
-    LoggingHelper.LogRequest( _logger, "Received request to get files for user", new { UserId = userId } );
+    LoggingHelper.LogRequest( _logger, "get files for user", new { UserId = userId } );
 
-    IEnumerable<FileDto> result = _fileService.GetUserFiles( userId );
+    IEnumerable<FileDto> userFilesDto = _fileService.GetUserFiles( userId );
 
-    LoggingHelper.LogSuccess( _logger, "Returning files for user", new { UserId = userId, FileCount = result.Count() } );
+    LoggingHelper.LogSuccess( _logger, "Returning files for user", new { UserId = userId, FileCount = userFilesDto.Count() } );
 
-    return Ok( result );
+    return Ok( userFilesDto );
   }
 
   [HttpGet( "shared-to-me/{userId}" )]
   public IActionResult GetFilesSharedToMe( int userId )
   {
-    LoggingHelper.LogRequest( _logger, "Received request to get files shared to user", new { UserId = userId } );
+    LoggingHelper.LogRequest( _logger, "get files shared to user", new { UserId = userId } );
 
-    IEnumerable<FileDto> result = _fileService.GetFilesSharedToMe( userId );
+    IEnumerable<ShareFileDto> sharedToUserFilesDto = _fileService.GetFilesSharedToMe( userId );
 
-    LoggingHelper.LogSuccess( _logger, "Returning files shared to user", new { UserId = userId, FileCount = result.Count() } );
+    LoggingHelper.LogSuccess( _logger, "Returning files shared to user", new { UserId = userId, FileCount = sharedToUserFilesDto.Count() } );
 
-    return Ok( result );
+    return Ok( sharedToUserFilesDto );
   }
 
   [HttpGet( "shared-by-me/{userId}" )]
   public IActionResult GetFilesSharedByMe( int userId )
   {
-    LoggingHelper.LogRequest( _logger, "Received request to get files shared by user", new { UserId = userId } );
+    LoggingHelper.LogRequest( _logger, "get files shared by user", new { UserId = userId } );
 
-    IEnumerable<FileDto> result = _fileService.GetFilesSharedByMe( userId );
+    IEnumerable<ShareFileDto> sharedByUserFilesDto = _fileService.GetFilesSharedByMe( userId );
 
-    LoggingHelper.LogSuccess( _logger, "Returning files shared by user", new { UserId = userId, FileCount = result.Count() } );
+    LoggingHelper.LogSuccess( _logger, "Returning files shared by user", new { UserId = userId, FileCount = sharedByUserFilesDto.Count() } );
 
-    return Ok( result );
+    return Ok( sharedByUserFilesDto );
   }
 }

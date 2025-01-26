@@ -6,5 +6,5 @@ public class CreateAccessLogDto
 {
   public int FileId { get; set; }
   public int UserId { get; set; }
-  public AccessType AccessType { get; set; }
+  public string AccessType { get; set; }
 }

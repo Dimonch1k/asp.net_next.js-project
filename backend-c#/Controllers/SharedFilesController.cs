@@ -4,6 +4,7 @@ using backend_c_.Service;
 using Microsoft.Extensions.Logging;
 using backend_c_.Utilities;
 using Microsoft.AspNetCore.Authorization;
+using backend_c_.Enums;
 
 namespace backend_c_.Controllers;
 
@@ -24,30 +25,43 @@ public class SharedFilesController : ControllerBase
   [HttpPost]
   public IActionResult Share( [FromBody] ShareFileDto data )
   {
-    LoggingHelper.LogRequest( _logger, "Share file", new { FileId = data.FileId } );
+    LoggingHelper.LogRequest( _logger, "share file", new { FileId = data.FileId } );
 
-    ShareFileDto result = _sharedFileService.Share( data );
+    if ( !Enum.IsDefined( typeof( AccessType ), data.Permission ) )
+    {
+      LoggingHelper.LogFailure( _logger, "Invalid permission." );
+      return BadRequest( "Invalid permission." );
+    }
 
-    LoggingHelper.LogSuccess( _logger, "File shared successfully", new { FileId = result.FileId } );
+    ShareFileDto shareFileDto = _sharedFileService.Share( data );
+
+    if ( shareFileDto == null )
+    {
+      LoggingHelper.LogFailure( _logger, "Incorrect request. Some data missing or incorrect." );
+      return BadRequest();
+    }
+
+    LoggingHelper.LogSuccess( _logger, "File shared successfully", new { FileId = shareFileDto.FileId } );
+
     return CreatedAtAction(
       nameof( Share ),
-      new { id = result.FileId },
-      result
+      new { id = shareFileDto.FileId },
+      shareFileDto
     );
   }
 
   [HttpDelete( "{id}" )]
   public IActionResult Remove( int id )
   {
-    LoggingHelper.LogRequest( _logger, "Remove shared file", new { FileId = id } );
+    LoggingHelper.LogRequest( _logger, "remove shared file", new { FileId = id } );
 
-    bool success = _sharedFileService.Remove( id );
-    if ( !success )
+    ShareFileDto sharedFileDto = _sharedFileService.Remove( id );
+    if ( sharedFileDto == null )
     {
       LoggingHelper.LogFailure( _logger, "Failed to remove shared file. File not found", new { FileId = id } );
       return NotFound();
     }
     LoggingHelper.LogSuccess( _logger, "Shared file removed successfully", new { FileId = id } );
-    return NoContent();
+    return Ok( sharedFileDto );
   }
 }

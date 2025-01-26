@@ -15,5 +15,5 @@ public class MediaFile
   public User User { get; set; }
   public List<AccessLog> AccessLogs { get; set; }
   public List<FileVersion> Versions { get; set; }
-  public List<SharedFile> SharedFiles { get; set; } = new();
+  public List<SharedFile> SharedFiles { get; set; }
 }
