@@ -11,4 +11,6 @@ public interface IVersionService
   FileVersionDto Update( int id, UpdateFileVersionDto data );
   FileVersionDto Remove( int id );
   IEnumerable<FileVersionDto> FindByFileId( int fileId );
+
+  void CheckByPathIfFileExists( string path );
 }

@@ -11,4 +11,7 @@ public interface IUserService
   UserDto Remove( int id );
   bool UserExists( string username, string email );
   User Register( RegisterDto registerDto );
+
+  public User CheckIfUserExists( int id );
+  void CheckIfUserIsNull( User? user );
 }

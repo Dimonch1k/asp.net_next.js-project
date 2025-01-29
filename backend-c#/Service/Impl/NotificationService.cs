@@ -50,7 +50,7 @@ public class NotificationService : INotificationService
       .ToList();
   }
 
-  private static NotificationDto NotificationToDto( Notification notification )
+  private NotificationDto NotificationToDto( Notification notification )
   {
     return new NotificationDto
     {

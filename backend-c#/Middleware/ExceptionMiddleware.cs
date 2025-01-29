@@ -1,11 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.Text.Json;
+﻿using System.Text.Json;
 using backend_c_.Exceptions;
-using backend_c_.Exceptions.AccessLog;
-using backend_c_.Exceptions.File;
-using backend_c_.Exceptions.FileVersion;
-using backend_c_.Exceptions.SharedFile;
-using backend_c_.Exceptions.User;
+using Microsoft.AspNetCore.Http;
 
 public class ExceptionMiddleware
 {
@@ -24,41 +19,47 @@ public class ExceptionMiddleware
     {
       await _next( context );
     }
+    catch ( ServerException ex )
+    {
+      _logger.LogError( ex, $"Exception: {ex.Message}; Type: {ex.StatusCode.ToString()}" );
+
+      await HandleServerExceptionAsync( context, ex );
+    }
     catch ( Exception ex )
     {
       _logger.LogError( ex, "Unhandled exception occurred." );
+
       await HandleExceptionAsync( context, ex );
     }
   }
 
-  private Task HandleExceptionAsync( HttpContext context, Exception exception )
+  private Task HandleServerExceptionAsync( HttpContext context, ServerException exception )
   {
-    int statusCode = exception switch
-    {
-      InvalidMediaFileTypeException => StatusCodes.Status400BadRequest,
-      FileNotFoundException => StatusCodes.Status404NotFound,
-      MediaFileAccessException => StatusCodes.Status403Forbidden,
-      AccessLogNotFoundException => StatusCodes.Status404NotFound,
-      SharedFilePermissionException => StatusCodes.Status403Forbidden,
-      SharedFileNotFoundException => StatusCodes.Status404NotFound,
-      MediaFileVersionNotFoundException => StatusCodes.Status404NotFound,
-      DuplicateVersionException => StatusCodes.Status409Conflict,
-      ConflictException => StatusCodes.Status409Conflict,
-      UserNotFoundException => StatusCodes.Status404NotFound,
-      DuplicateUserException => StatusCodes.Status409Conflict,
-      UnauthorizedOperationException => StatusCodes.Status401Unauthorized,
-      FluentValidation.ValidationException => StatusCodes.Status400BadRequest,
-      _ => StatusCodes.Status500InternalServerError
-    };
+
+    int statusCode = (int) exception.StatusCode;
 
     object response = new
     {
       error = exception.Message,
-      details = exception.InnerException?.Message
+      details = exception.InnerException?.Message, // remove after finishing work with Backend
     };
 
     context.Response.ContentType = "application/json";
     context.Response.StatusCode = statusCode;
+
+    return context.Response.WriteAsync( JsonSerializer.Serialize( response ) );
+  }
+
+  private Task HandleExceptionAsync( HttpContext context, Exception exception )
+  {
+    object response = new
+    {
+      error = "Internal server error",
+      details = exception.InnerException?.Message, // remove after finishing work with Backend
+    };
+
+    context.Response.ContentType = "application/json";
+    context.Response.StatusCode = 500;
 
     return context.Response.WriteAsync( JsonSerializer.Serialize( response ) );
   }

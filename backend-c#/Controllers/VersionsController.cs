@@ -28,6 +28,7 @@ public class VersionsController : ControllerBase
     FileVersionDto fileVersionDto = _versionService.Create( data );
 
     LoggingHelper.LogSuccess( _logger, "File version created successfully", new { VersionId = fileVersionDto.Id } );
+
     return CreatedAtAction(
       nameof( FindOne ),
       new { id = fileVersionDto.Id },
@@ -55,6 +56,7 @@ public class VersionsController : ControllerBase
     IEnumerable<FileVersionDto> fileVersionsDto = _versionService.FindAll();
 
     LoggingHelper.LogSuccess( _logger, "Returning file versions", new { FileVersionCount = fileVersionsDto.Count() } );
+
     return Ok( fileVersionsDto );
   }
 
@@ -64,12 +66,9 @@ public class VersionsController : ControllerBase
     LoggingHelper.LogRequest( _logger, "find file version by ID", new { VersionId = id } );
 
     FileVersionDto fileVersionDto = _versionService.FindOne( id );
-    if ( fileVersionDto == null )
-    {
-      LoggingHelper.LogFailure( _logger, "File version not found", new { VersionId = id } );
-      return NotFound();
-    }
+
     LoggingHelper.LogSuccess( _logger, "Returning file version", new { VersionId = id } );
+
     return Ok( fileVersionDto );
   }
 
@@ -79,12 +78,9 @@ public class VersionsController : ControllerBase
     LoggingHelper.LogRequest( _logger, "update file version", new { VersionId = id } );
 
     FileVersionDto fileVersionDto = _versionService.Update( id, data );
-    if ( fileVersionDto == null )
-    {
-      LoggingHelper.LogFailure( _logger, "File version not found", new { VersionId = id } );
-      return NotFound();
-    }
+
     LoggingHelper.LogSuccess( _logger, "File version updated successfully", new { VersionId = id } );
+    
     return Ok( fileVersionDto );
   }
 
@@ -94,12 +90,9 @@ public class VersionsController : ControllerBase
     LoggingHelper.LogRequest( _logger, "remove file version", new { VersionId = id } );
 
     FileVersionDto removedFileVersionDto = _versionService.Remove( id );
-    if ( removedFileVersionDto == null )
-    {
-      LoggingHelper.LogFailure( _logger, "Failed to remove file version. Version not found", new { VersionId = id } );
-      return NotFound();
-    }
+
     LoggingHelper.LogSuccess( _logger, "File version removed successfully", new { VersionId = id } );
+
     return Ok( removedFileVersionDto );
   }
 

@@ -1,5 +1,8 @@
 ﻿using backend_c_.DTO.Version;
 using backend_c_.Entity;
+using backend_c_.Enums;
+using backend_c_.Exceptions;
+using backend_c_.Utilities;
 using backend_c_.Utils;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -11,10 +14,16 @@ namespace backend_c_.Service.Impl;
 public class VersionService : IVersionService
 {
   private readonly AppDbContext _dbContext;
+  private readonly IUserService _userService;
+  private readonly IFileService _fileService;
+  private readonly ILogger<VersionService> _logger;
 
-  public VersionService( AppDbContext dbContext )
+  public VersionService( AppDbContext dbContext, IUserService userService, IFileService fileService, ILogger<VersionService> logger )
   {
     _dbContext = dbContext;
+    _userService = userService;
+    _fileService = fileService;
+    _logger = logger;
   }
 
   public IEnumerable<FileVersionDto> FindAll( )
@@ -26,10 +35,7 @@ public class VersionService : IVersionService
 
   public IEnumerable<FileVersionDto> FindByFileId( int fileId )
   {
-    if ( !_dbContext.Files.Any( file => file.Id == fileId ) )
-    {
-      throw new InvalidOperationException( $"File with ID {fileId} does not exist." );
-    }
+    _fileService.CheckIfFileExists( fileId );
 
     return _dbContext.FileVersions
       .Where( fileVersion => fileVersion.FileId == fileId )
@@ -39,42 +45,24 @@ public class VersionService : IVersionService
 
   public FileVersionDto FindOne( int id )
   {
-    FileVersion? fileVersion = _dbContext.FileVersions.Find( id );
-
-    if ( fileVersion == null )
-    {
-      throw new InvalidOperationException( $"File version with ID {id} does not exist." );
-    }
+    FileVersion? fileVersion = CheckIfFileVersionExists( id );
 
     return VersionToDto( fileVersion );
   }
 
   public FileVersionDto Create( CreateFileVersionDto data )
   {
-    MediaFile? file = _dbContext.Files.FirstOrDefault( f => f.Id == data.FileId );
+    MediaFile? file = _fileService.CheckIfFileExists( data.FileId );
 
-    if ( file == null )
-    {
-      throw new InvalidOperationException( $"File with ID {data.FileId} does not exist." );
-    }
-
-    string currentFilePath = file.FilePath;
-
-    if ( !File.Exists( currentFilePath ) )
-    {
-      throw new Exception( $"Original file not found at {currentFilePath}." );
-    }
+    CheckByPathIfFileExists( file.FilePath );
 
     User? user = _dbContext.Users.FirstOrDefault( user => user.Id == file.UserId );
 
-    if ( user == null )
-    {
-      throw new InvalidOperationException( $"User with ID {file.UserId} doesn't exist" );
-    }
+    _userService.CheckIfUserIsNull( user );
 
     string destinationPath = PathHelper.GetVersionPath( user.Id, data.FileId, data.VersionName );
 
-    File.Copy( currentFilePath, destinationPath, overwrite: true );
+    File.Copy( file.FilePath, destinationPath, overwrite: true );
 
     FileVersion newFileVersion = new FileVersion
     {
@@ -92,24 +80,13 @@ public class VersionService : IVersionService
 
   public FileVersionDto RestoreVersion( int versionId )
   {
-    FileVersion? fileVersion = _dbContext.FileVersions.Find( versionId );
-
-    if ( fileVersion == null )
-    {
-      throw new InvalidOperationException( $"File version with ID {versionId} does not exist." );
-    }
+    FileVersion? fileVersion = CheckIfFileVersionExists( versionId );
 
     MediaFile? file = _dbContext.Files.FirstOrDefault( f => f.Id == fileVersion.FileId );
 
-    if ( file == null )
-    {
-      throw new InvalidOperationException( $"File with ID {fileVersion.FileId} does not exist." );
-    }
+    _fileService.CheckIfFileIsNull( file );
 
-    if ( !File.Exists( fileVersion.VersionPath ) )
-    {
-      throw new Exception( $"Version file not found at {fileVersion.VersionPath}." );
-    }
+    CheckByPathIfFileExists( fileVersion.VersionPath );
 
     File.Copy( fileVersion.VersionPath, file.FilePath, overwrite: true );
     file.UpdatedAt = DateTime.UtcNow;
@@ -122,20 +99,13 @@ public class VersionService : IVersionService
 
   public FileVersionDto Update( int id, UpdateFileVersionDto data )
   {
-    FileVersion? fileVersion = _dbContext.FileVersions.Find( id );
-
-    if ( fileVersion == null )
-    {
-      throw new InvalidOperationException( $"File version with ID {id} does not exist." );
-    }
+    FileVersion? fileVersion = CheckIfFileVersionExists( id );
 
     string oldFileVersionPath = fileVersion.VersionPath;
     string newFileVersionPath = PathHelper.UpdatePath( fileVersion.VersionPath, data.VersionName );
 
-    if ( !File.Exists( oldFileVersionPath ) )
-    {
-      throw new Exception( $"File version not found" );
-    }
+    CheckByPathIfFileExists( oldFileVersionPath );
+
     File.Move( oldFileVersionPath, newFileVersionPath );
 
     fileVersion.VersionName = data.VersionName;
@@ -149,12 +119,7 @@ public class VersionService : IVersionService
 
   public FileVersionDto Remove( int id )
   {
-    FileVersion? fileVersion = _dbContext.FileVersions.Find( id );
-
-    if ( fileVersion == null )
-    {
-      throw new InvalidOperationException( $"File version with ID {id} does not exist." );
-    }
+    FileVersion? fileVersion = CheckIfFileVersionExists( id );
 
     _dbContext.FileVersions.Remove( fileVersion );
     _dbContext.SaveChanges();
@@ -163,7 +128,21 @@ public class VersionService : IVersionService
   }
 
 
-  private static FileVersionDto VersionToDto( FileVersion version )
+  public FileVersion CheckIfFileVersionExists( int fileVersionId )
+  {
+    FileVersion? fileVersion = _dbContext.FileVersions.Find( fileVersionId );
+
+    if ( fileVersion == null )
+    {
+      LoggingHelper.LogFailure( _logger, "File version not found", new { Id = fileVersionId } );
+
+      throw new ServerException( $"File version with ID='{fileVersionId}' not found", ExceptionStatusCode.FileVersionNotFound );
+    }
+
+    return fileVersion;
+  }
+
+  private FileVersionDto VersionToDto( FileVersion version )
   {
     return new FileVersionDto
     {
@@ -172,5 +151,15 @@ public class VersionService : IVersionService
       VersionName = version.VersionName,
       VersionPath = version.VersionPath
     };
+  }
+
+  private void CheckByPathIfFileExists( string path )
+  {
+    if ( !File.Exists( path ) )
+    {
+      LoggingHelper.LogFailure( _logger, $"File not found at {path}" );
+
+      throw new ServerException( $"File not found at {path}", ExceptionStatusCode.DirectoryNotFound );
+    }
   }
 }
