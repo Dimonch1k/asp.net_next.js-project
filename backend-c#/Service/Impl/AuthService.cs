@@ -1,8 +1,12 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using backend_c_.Controllers;
 using backend_c_.DTO.User;
 using backend_c_.Entity;
+using backend_c_.Enums;
+using backend_c_.Exceptions;
+using backend_c_.Utilities;
 using backend_c_.Utils;
 using Microsoft.IdentityModel.Tokens;
 
@@ -10,13 +14,17 @@ namespace backend_c_.Service.Impl;
 
 public class AuthService : IAuthService
 {
+  private readonly AppDbContext _dbContext;
+  private readonly IUserService _userService;
+  private readonly ILogger<AuthService> _logger;
   private readonly IConfiguration _configuration;
-  private readonly AppDbContext _context;
 
-  public AuthService( AppDbContext context, IConfiguration configuration )
+  public AuthService( AppDbContext dbContext, IUserService userService, ILogger<AuthService> logger, IConfiguration configuration )
   {
+    _dbContext = dbContext;
+    _userService = userService;
+    _logger = logger;
     _configuration = configuration;
-    _context = context;
   }
 
   public bool Authorize( AuthDto authDto )
@@ -24,7 +32,12 @@ public class AuthService : IAuthService
     try
     {
       var tokenHandler = new JwtSecurityTokenHandler();
-      var key = Encoding.ASCII.GetBytes( _configuration["Jwt:Secret"] );
+      string? secret = _configuration["Jwt:Secret"];
+
+      CheckIfSecretIsMissing( secret );
+
+      byte[] key = Encoding.ASCII.GetBytes( _configuration["Jwt:Secret"] );
+
       tokenHandler.ValidateToken( authDto.Token, new TokenValidationParameters
       {
         ValidateIssuerSigningKey = true,
@@ -32,20 +45,34 @@ public class AuthService : IAuthService
         ValidateIssuer = false,
         ValidateAudience = false
       }, out _ );
+
       return true;
     }
-    catch
+    catch ( SecurityTokenException )
     {
-      return false;
+      LoggingHelper.LogFailure( _logger, "Invalid token" );
+
+      throw new ServerException( "Invalid token", ExceptionStatusCode.InvalidToken );
+    }
+    catch ( Exception ex )
+    {
+      LoggingHelper.LogFailure( _logger, $"Authorization failed: {ex.Message}" );
+
+      throw new ServerException( "Authorization failed", ExceptionStatusCode.InternalServerError );
     }
   }
 
   public string? Login( LoginDto loginDto )
   {
-    User? user = _context.Users.FirstOrDefault( u => u.Username == loginDto.Username );
-    if ( user == null || !HashingHelper.VerifyPassword( loginDto.Password, user.PasswordHash ) )
+    User? user = _dbContext.Users.FirstOrDefault( u => u.Username == loginDto.Username );
+
+    _userService.CheckIfUserIsNull( user );
+
+    if ( !HashingHelper.VerifyPassword( loginDto.Password, user.PasswordHash ) )
     {
-      throw new Exception( "Failed login" );
+      LoggingHelper.LogFailure( _logger, "Invalid username or password" );
+
+      throw new ServerException( "Invalid username or password", ExceptionStatusCode.BadRequest );
     }
 
     return GenerateJwtToken( user );
@@ -63,19 +90,16 @@ public class AuthService : IAuthService
   private string GenerateJwtToken( User user )
   {
     string? secret = _configuration["Jwt:Secret"];
-    if ( string.IsNullOrEmpty( secret ) )
-    {
-      throw new InvalidOperationException( "JWT secret is missing from configuration." );
-    }
+
+    CheckIfSecretIsMissing( secret );
 
     var key = new SymmetricSecurityKey( Encoding.UTF8.GetBytes( secret ) );
-
     var credentials = new SigningCredentials( key, SecurityAlgorithms.HmacSha256 );
-    string userId = user.Id.ToString();
+
     var claimsList = new[]
     {
        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString() ),
-       new Claim(JwtRegisteredClaimNames.Sub,  userId)
+       new Claim(JwtRegisteredClaimNames.Sub,  user.Id.ToString())
     };
 
     var token = new JwtSecurityToken(
@@ -83,8 +107,18 @@ public class AuthService : IAuthService
       signingCredentials: credentials
     );
     token.Payload.AddClaim( new Claim( JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString() ) );
-    token.Payload.AddClaim( new Claim( JwtRegisteredClaimNames.Sub, userId ) );
+    token.Payload.AddClaim( new Claim( JwtRegisteredClaimNames.Sub, user.Id.ToString() ) );
 
-    return new JwtSecurityTokenHandler().WriteToken(token);
+    return new JwtSecurityTokenHandler().WriteToken( token );
+  }
+
+  private void CheckIfSecretIsMissing( string? secret )
+  {
+    if ( string.IsNullOrEmpty( secret ) )
+    {
+      LoggingHelper.LogFailure( _logger, "JWT secret is missing" );
+
+      throw new ServerException( "JWT secret is missing", ExceptionStatusCode.MissingJwtSecret );
+    }
   }
 }

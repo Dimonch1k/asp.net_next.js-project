@@ -27,10 +27,6 @@ public class NotificationsController : ControllerBase
 
     IEnumerable<NotificationDto> notificationsDto = _notificationService.GetUserNotifications( id );
 
-    if ( notificationsDto == null )
-    {
-      LoggingHelper.LogFailure( _logger, "No user's notifications found.", new { Id = id } );
-    }
     LoggingHelper.LogSuccess( _logger, "Notifications received successfully", new { Id = id } );
 
     return Ok( notificationsDto );

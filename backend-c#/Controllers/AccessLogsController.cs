@@ -39,12 +39,9 @@ public class AccessLogsController : ControllerBase
     _logger.LogInformation( "find access log with ID: {AccessLogId}", id );
 
     AccessLogDto accessLogDto = _accessLogService.FindOne( id );
-    if ( accessLogDto == null )
-    {
-      _logger.LogWarning( "Access log with ID {AccessLogId} not found.", id );
-      return NotFound();
-    }
+
     _logger.LogInformation( "Returning access log with ID: {AccessLogId}.", id );
+
     return Ok( accessLogDto );
   }
 
@@ -56,6 +53,7 @@ public class AccessLogsController : ControllerBase
     AccessLogDto accessLogDto = _accessLogService.Create( createAccessLogDto );
 
     _logger.LogInformation( "Access log created successfully with ID: {AccessLogId}.", accessLogDto.Id );
+
     return CreatedAtAction(
       nameof( FindOne ),
       new { id = accessLogDto.Id },
@@ -69,13 +67,9 @@ public class AccessLogsController : ControllerBase
     _logger.LogInformation( "Received request to update access log with ID: {AccessLogId}.", id );
 
     AccessLogDto accessLogDto = _accessLogService.Update( id, updateAccessLogDto );
-    if ( accessLogDto == null )
-    {
-      _logger.LogWarning( "Access log with ID {AccessLogId} not found.", id );
-      return NotFound();
-    }
 
     _logger.LogInformation( "Access log with ID {AccessLogId} updated successfully.", id );
+
     return Ok( accessLogDto );
   }
 
@@ -85,12 +79,9 @@ public class AccessLogsController : ControllerBase
     _logger.LogInformation( "Received request to remove access log with ID: {AccessLogId}.", id );
 
     AccessLogDto removedAccessLogDto = _accessLogService.Remove( id );
-    if ( removedAccessLogDto == null )
-    {
-      _logger.LogWarning( "Failed to remove access log with ID {AccessLogId}. Access log not found.", id );
-      return NotFound();
-    }
+
     _logger.LogInformation( "Access log with ID {AccessLogId} removed successfully.", id );
+
     return Ok(removedAccessLogDto);
   }
 

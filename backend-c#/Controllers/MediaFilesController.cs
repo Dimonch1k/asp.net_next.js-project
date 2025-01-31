@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using backend_c_.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using backend_c_.DTO.SharedFile;
+using backend_c_.Exceptions;
 
 namespace backend_c_.Controllers;
 
@@ -31,7 +32,7 @@ public class MediaFilesController : ControllerBase
     {
       LoggingHelper.LogFailure( _logger, "No file provided", new { UserId = userId } );
 
-      return BadRequest( "No file uploaded." );
+      throw new ServerException( "No file uploaded.", Enums.ExceptionStatusCode.NoFileProvided );
     }
 
     UploadFileDto uploadFileDto = new();
@@ -45,13 +46,8 @@ public class MediaFilesController : ControllerBase
 
     FileDto? uploadedFileDto = _fileService.Upload( uploadFileDto, file );
 
-    if ( uploadedFileDto == null )
-    {
-      LoggingHelper.LogFailure( _logger, "File upload failed" );
-
-      return StatusCode( 500, "Internal server error" );
-    }
     LoggingHelper.LogSuccess( _logger, "File uploaded successfully", new { FileId = uploadedFileDto.Id } );
+
     return Ok( uploadedFileDto );
   }
 
@@ -61,12 +57,9 @@ public class MediaFilesController : ControllerBase
     LoggingHelper.LogRequest( _logger, "update file", new { FileId = id } );
 
     FileDto fileDto = _fileService.Update( id, data );
-    if ( fileDto == null )
-    {
-      LoggingHelper.LogFailure( _logger, "File not found", new { FileId = id } );
-      return NotFound();
-    }
+    
     LoggingHelper.LogSuccess( _logger, "File updated successfully", new { FileId = id } );
+
     return Ok( fileDto );
   }
 
@@ -76,12 +69,9 @@ public class MediaFilesController : ControllerBase
     LoggingHelper.LogRequest( _logger, "remove file", new { FileId = id } );
 
     FileDto fileDto = _fileService.Remove( id );
-    if ( fileDto == null )
-    {
-      LoggingHelper.LogFailure( _logger, "Failed to remove file. File not found", new { FileId = id } );
-      return NotFound();
-    }
+
     LoggingHelper.LogSuccess( _logger, "File removed successfully", new { FileId = id } );
+
     return Ok( fileDto );
   }
 

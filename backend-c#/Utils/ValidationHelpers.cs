@@ -14,7 +14,6 @@ public static class ValidationHelpers
       "application/pdf", // .pdf
       "image/jpeg", // .jpg/.jpeg
       "image/png", // .png
-      "image/gif", // .gif
       "audio/mpeg", // .mp3
       "video/mp4" // .mp4
   };

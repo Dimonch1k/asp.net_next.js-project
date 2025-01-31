@@ -27,19 +27,7 @@ public class SharedFilesController : ControllerBase
   {
     LoggingHelper.LogRequest( _logger, "share file", new { FileId = data.FileId } );
 
-    if ( !Enum.IsDefined( typeof( AccessType ), data.Permission ) )
-    {
-      LoggingHelper.LogFailure( _logger, "Invalid permission." );
-      return BadRequest( "Invalid permission." );
-    }
-
     ShareFileDto shareFileDto = _sharedFileService.Share( data );
-
-    if ( shareFileDto == null )
-    {
-      LoggingHelper.LogFailure( _logger, "Incorrect request. Some data missing or incorrect." );
-      return BadRequest();
-    }
 
     LoggingHelper.LogSuccess( _logger, "File shared successfully", new { FileId = shareFileDto.FileId } );
 
@@ -56,12 +44,9 @@ public class SharedFilesController : ControllerBase
     LoggingHelper.LogRequest( _logger, "remove shared file", new { FileId = id } );
 
     ShareFileDto sharedFileDto = _sharedFileService.Remove( id );
-    if ( sharedFileDto == null )
-    {
-      LoggingHelper.LogFailure( _logger, "Failed to remove shared file. File not found", new { FileId = id } );
-      return NotFound();
-    }
+
     LoggingHelper.LogSuccess( _logger, "Shared file removed successfully", new { FileId = id } );
+
     return Ok( sharedFileDto );
   }
 }
