@@ -1,0 +1,6 @@
+@VirusTotalMicroService_HostAddress = http://localhost:5240
+
+GET {{VirusTotalMicroService_HostAddress}}/virustotalmicroservice/
+Accept: application/json
+
+###
