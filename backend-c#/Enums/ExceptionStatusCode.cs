@@ -16,6 +16,10 @@ public enum ExceptionStatusCode
 
   FileVersionNotFound = 404,
 
+  ScanResultNotFound = 404,
+  ScanTimeout = 408,
+  FileInfected = 422,
+
   DirectoryNotFound = 404,
   FileNotAccessible = 403,
   FileCreationFailed = 500,

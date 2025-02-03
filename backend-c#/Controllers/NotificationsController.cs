@@ -23,11 +23,11 @@ public class NotificationsController : ControllerBase
   [HttpGet( "{id}" )]
   public IActionResult GetUserNotifications( int id )
   {
-    LoggingHelper.LogRequest( _logger, $"get user's notifications with ID: {id}" );
+    _logger.LogInformation( $"Received request to get user's notifications with ID: {id}" );
 
     IEnumerable<NotificationDto> notificationsDto = _notificationService.GetUserNotifications( id );
 
-    LoggingHelper.LogSuccess( _logger, "Notifications received successfully", new { Id = id } );
+    _logger.LogInformation( "Notifications received successfully" );
 
     return Ok( notificationsDto );
   }

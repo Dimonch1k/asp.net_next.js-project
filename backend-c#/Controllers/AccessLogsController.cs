@@ -4,6 +4,7 @@ using backend_c_.Service;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
+using backend_c_.Entity;
 
 namespace backend_c_.Controllers;
 
@@ -22,82 +23,86 @@ public class AccessLogsController : ControllerBase
   }
 
   [HttpGet]
-  public IActionResult FindAll( )
+  public IActionResult GetAllAccessLogs( )
   {
-    _logger.LogInformation( "find all access logs." );
+    _logger.LogInformation( "Received request to find all access logs." );
 
-    IEnumerable<AccessLogDto> accessLogsDto = _accessLogService.FindAll();
+    IEnumerable<AccessLogDto> accessLogsDto = _accessLogService.GetAllAccessLogs();
 
-    _logger.LogInformation( "Returning {AccessLogCount} access logs.", accessLogsDto.Count() );
+    _logger.LogInformation( $"Returning {accessLogsDto.Count()} access logs." );
 
     return Ok( accessLogsDto );
   }
 
   [HttpGet( "{id}" )]
-  public IActionResult FindOne( int id )
+  public IActionResult GetAccessLogById( int id )
   {
-    _logger.LogInformation( "find access log with ID: {AccessLogId}", id );
+    _logger.LogInformation( $"Received request to find access log with ID: {id}" );
 
-    AccessLogDto accessLogDto = _accessLogService.FindOne( id );
+    AccessLogDto accessLogDto = _accessLogService.GetAccessLogById( id );
 
-    _logger.LogInformation( "Returning access log with ID: {AccessLogId}.", id );
+    _logger.LogInformation( $"Returning access log with ID: {id}." );
 
     return Ok( accessLogDto );
   }
 
   [HttpPost]
-  public IActionResult Create( [FromBody] CreateAccessLogDto createAccessLogDto )
+  public IActionResult CreateAccessLog( [FromBody] CreateAccessLogDto createAccessLogDto )
   {
-    _logger.LogInformation( "create access log for file: {FileId} by user: {UserId}.", createAccessLogDto.FileId, createAccessLogDto.UserId );
+    _logger.LogInformation( $"Received request to create access log for file with ID: {createAccessLogDto.FileId} by user with ID: {createAccessLogDto.UserId}." );
 
-    AccessLogDto accessLogDto = _accessLogService.Create( createAccessLogDto );
+    AccessLogDto accessLogDto = _accessLogService.CreateAccessLog( createAccessLogDto );
 
-    _logger.LogInformation( "Access log created successfully with ID: {AccessLogId}.", accessLogDto.Id );
+    _logger.LogInformation( $"Access log created successfully with ID: {accessLogDto.Id}." );
 
-    return CreatedAtAction(
-      nameof( FindOne ),
-      new { id = accessLogDto.Id },
-      accessLogDto
-    );
+    return Ok( accessLogDto );
   }
 
   [HttpPatch( "{id}" )]
-  public IActionResult Update( int id, [FromBody] UpdateAccessLogDto updateAccessLogDto )
+  public IActionResult UpdateAccessLog( int id, [FromBody] UpdateAccessLogDto updateAccessLogDto )
   {
-    _logger.LogInformation( "Received request to update access log with ID: {AccessLogId}.", id );
+    _logger.LogInformation( $"Received request to update access log with ID: {id}." );
 
-    AccessLogDto accessLogDto = _accessLogService.Update( id, updateAccessLogDto );
+    AccessLogDto accessLogDto = _accessLogService.UpdateAccessLog( id, updateAccessLogDto );
 
-    _logger.LogInformation( "Access log with ID {AccessLogId} updated successfully.", id );
+    _logger.LogInformation( $"Access log with ID: {id} updated successfully.");
 
     return Ok( accessLogDto );
   }
 
   [HttpDelete( "{id}" )]
-  public IActionResult Remove( int id )
+  public IActionResult DeleteAccessLog( int id )
   {
-    _logger.LogInformation( "Received request to remove access log with ID: {AccessLogId}.", id );
+    _logger.LogInformation( $"Received request to delete access log with ID: {id}." );
 
-    AccessLogDto removedAccessLogDto = _accessLogService.Remove( id );
+    AccessLogDto deletedAccessLogDto = _accessLogService.DeleteAccessLog( id );
 
-    _logger.LogInformation( "Access log with ID {AccessLogId} removed successfully.", id );
+    _logger.LogInformation( $"Access log with ID: {id} deleted successfully." );
 
-    return Ok(removedAccessLogDto);
+    return Ok( deletedAccessLogDto );
   }
 
   [HttpGet( "file/{fileId}" )]
-  public IActionResult FindAccessByFile( int fileId )
+  public IActionResult GetAccessLogsByFileId( int fileId )
   {
-    _logger.LogInformation( "Received request to find access logs for file with ID: {FileId}.", fileId );
+    _logger.LogInformation( $"Received request to find access logs for file with ID: {fileId}." );
 
-    return Ok( _accessLogService.FindAccessByFile( fileId ) );
+    IEnumerable<AccessLogDto> accessLogsDto = _accessLogService.GetAccessLogsByFileId( fileId );
+
+    _logger.LogInformation( "Returning access logs" );
+
+    return Ok( accessLogsDto );
   }
 
   [HttpGet( "user/{userId}" )]
-  public IActionResult FindAccessByUser( int userId )
+  public IActionResult GetAccessLogsByUserId( int userId )
   {
-    _logger.LogInformation( "Received request to find access logs for user with ID: {UserId}.", userId );
+    _logger.LogInformation( $"Received request to find access logs for user with ID: {userId}." );
 
-    return Ok( _accessLogService.FindAccessByUser( userId ) );
+    IEnumerable<AccessLogDto> accessLogsDto = _accessLogService.GetAccessLogsByUserId( userId );
+
+    _logger.LogInformation( "Returning access logs" );
+
+    return Ok( accessLogsDto );
   }
 }

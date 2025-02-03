@@ -22,31 +22,6 @@ namespace backend_c_.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("backend_c_.Entities.Notification", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Notifications");
-                });
-
             modelBuilder.Entity("backend_c_.Entity.AccessLog", b =>
                 {
                     b.Property<int>("Id")
@@ -84,6 +59,40 @@ namespace backend_c_.Migrations
                     b.HasIndex("UserId1");
 
                     b.ToTable("AccessLogs");
+                });
+
+            modelBuilder.Entity("backend_c_.Entity.FileScanRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ScanResult")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("FileScanRequests");
                 });
 
             modelBuilder.Entity("backend_c_.Entity.FileVersion", b =>
@@ -165,6 +174,31 @@ namespace backend_c_.Migrations
                     b.HasIndex("UserId1");
 
                     b.ToTable("Files");
+                });
+
+            modelBuilder.Entity("backend_c_.Entity.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("backend_c_.Entity.SharedFile", b =>
@@ -255,17 +289,6 @@ namespace backend_c_.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("backend_c_.Entities.Notification", b =>
-                {
-                    b.HasOne("backend_c_.Entity.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("backend_c_.Entity.AccessLog", b =>
                 {
                     b.HasOne("backend_c_.Entity.MediaFile", "File")
@@ -319,6 +342,17 @@ namespace backend_c_.Migrations
                     b.HasOne("backend_c_.Entity.User", null)
                         .WithMany("Files")
                         .HasForeignKey("UserId1");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("backend_c_.Entity.Notification", b =>
+                {
+                    b.HasOne("backend_c_.Entity.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });

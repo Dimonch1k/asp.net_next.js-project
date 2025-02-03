@@ -10,6 +10,7 @@ public class PathHelper
   //private static readonly string BaseDirectory = Environment.GetEnvironmentVariable( "FILE_BASE_DIRECTORY" )
   //  ?? throw new ServerException( "Base directory is not configured", ExceptionStatusCode.InternalServerError );
   public static readonly string BaseDirectory = @"C:\Users\dmytro\Desktop\uploads";
+  public static readonly string tempFolder = @"C:\Users\dmytro\Desktop\uploads\tempUploads";
 
   public PathHelper( )
   {
@@ -56,7 +57,7 @@ public class PathHelper
   }
 
 
-  private static void EnsureDirectoryExists( string path )
+  public static void EnsureDirectoryExists( string path )
   {
     if ( !Directory.Exists( path ) )
     {

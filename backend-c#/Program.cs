@@ -1,3 +1,4 @@
+using Autofac.Core;
 using backend_c_;
 using backend_c_.Service;
 using backend_c_.Service.Impl;
@@ -45,6 +46,7 @@ builder.Services.AddScoped<ISharedFileService, SharedFileService>();
 builder.Services.AddScoped<IAccessLogService, AccessLogService>();
 builder.Services.AddScoped<IVersionService, VersionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped( typeof( Lazy<> ), typeof( LazyDependency<> ) );
 
 // Configure DbContext for PostgreSQL
 builder.Services.AddDbContext<AppDbContext>( options =>

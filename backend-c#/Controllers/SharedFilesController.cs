@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using backend_c_.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using backend_c_.Enums;
+using backend_c_.Entity;
 
 namespace backend_c_.Controllers;
 
@@ -14,38 +15,38 @@ namespace backend_c_.Controllers;
 public class SharedFilesController : ControllerBase
 {
   private readonly ISharedFileService _sharedFileService;
+  private readonly IFileService _fileService;
   private readonly ILogger<SharedFilesController> _logger;
 
-  public SharedFilesController( ISharedFileService sharedFileService, ILogger<SharedFilesController> logger )
+  public SharedFilesController( ISharedFileService sharedFileService, IFileService fileService, ILogger<SharedFilesController> logger )
   {
     _sharedFileService = sharedFileService;
+    _fileService = fileService;
     _logger = logger;
   }
 
   [HttpPost]
-  public IActionResult Share( [FromBody] ShareFileDto data )
+  public IActionResult ShareFile( [FromBody] ShareFileDto data )
   {
-    LoggingHelper.LogRequest( _logger, "share file", new { FileId = data.FileId } );
+    _logger.LogInformation( "Received request to share file" );
 
-    ShareFileDto shareFileDto = _sharedFileService.Share( data );
+    _fileService.EnsureFileExists( data.FileId );
 
-    LoggingHelper.LogSuccess( _logger, "File shared successfully", new { FileId = shareFileDto.FileId } );
+    ShareFileDto shareFileDto = _sharedFileService.ShareFile( data );
 
-    return CreatedAtAction(
-      nameof( Share ),
-      new { id = shareFileDto.FileId },
-      shareFileDto
-    );
+    _logger.LogInformation( "File shared successfully" );
+
+    return Ok( shareFileDto );
   }
 
   [HttpDelete( "{id}" )]
-  public IActionResult Remove( int id )
+  public IActionResult DeleteSharedFile( int id )
   {
-    LoggingHelper.LogRequest( _logger, "remove shared file", new { FileId = id } );
+    _logger.LogInformation( $"Received request to delete shared file with ID: {id}" );
 
-    ShareFileDto sharedFileDto = _sharedFileService.Remove( id );
+    ShareFileDto sharedFileDto = _sharedFileService.DeleteSharedFile( id );
 
-    LoggingHelper.LogSuccess( _logger, "Shared file removed successfully", new { FileId = id } );
+    _logger.LogInformation( "Shared file deleted successfully" );
 
     return Ok( sharedFileDto );
   }

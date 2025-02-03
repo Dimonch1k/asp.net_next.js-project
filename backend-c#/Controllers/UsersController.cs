@@ -25,93 +25,89 @@ public class UsersController : ControllerBase
   }
 
   [HttpGet]
-  public IActionResult FindAll( )
+  public IActionResult GetAllUsers( )
   {
-    LoggingHelper.LogRequest( _logger, "find all users" );
+    _logger.LogInformation( "Received request to find all users" );
 
-    List<UserDto> usersDto = _userService.FindAll();
+    List<UserDto> usersDto = _userService.GetAllUsers();
 
-    LoggingHelper.LogSuccess( _logger, "Returning users", new { Count = usersDto.Count } );
+    _logger.LogInformation( "Returning users" );
 
     return Ok( usersDto );
   }
 
   [HttpGet( "{id}" )]
-  public IActionResult FindOne( int id )
+  public IActionResult GetUserById( int id )
   {
-    LoggingHelper.LogRequest( _logger, $"find user with ID: {id}" );
+    _logger.LogInformation( $"Received request to find user with ID: {id}" );
 
-    UserDto userDto = _userService.FindOne( id );
+    UserDto userDto = _userService.GetUserById( id );
 
-    LoggingHelper.LogSuccess( _logger, "Returning user", new { Id = id } );
+    _logger.LogInformation( "Returning user" );
 
     return Ok( userDto );
   }
 
   [HttpPatch( "{id}" )]
-  public IActionResult Update( int id, [FromBody] UpdateUserDto data )
+  public IActionResult UpdateUser( int id, [FromBody] UpdateUserDto data )
   {
-    LoggingHelper.LogRequest( _logger, $"update user with ID: {id}", data );
+    _logger.LogInformation( $"Received request to update user with ID: {id}" );
 
-    UserDto updatedUserDto = _userService.Update( id, data );
+    UserDto updatedUserDto = _userService.UpdateUser( id, data );
 
-    LoggingHelper.LogSuccess( _logger, "User updated successfully", new { Id = id } );
+    _logger.LogInformation( "User updated successfully" );
 
     return Ok( updatedUserDto );
   }
 
   [HttpDelete( "{id}" )]
-  public IActionResult Remove( int id )
+  public IActionResult DeleteUser( int id )
   {
-    LoggingHelper.LogRequest( _logger, $"remove user with ID: {id}" );
+    _logger.LogInformation( $"Received request to delete user with ID: {id}" );
 
-    UserDto removedUserDto = _userService.Remove( id );
+    UserDto deletedUserDto = _userService.DeleteUser( id );
 
-    LoggingHelper.LogSuccess( _logger, "User removed successfully", new { Id = id } );
+    _logger.LogInformation( "User deleted successfully" );
 
-    return Ok( removedUserDto );
+    return Ok( deletedUserDto );
   }
 
   [AllowAnonymous]
   [HttpPost( "register" )]
-  public IActionResult Register( [FromBody] RegisterDto registerDto )
+  public IActionResult RegisterUser( [FromBody] RegisterDto registerDto )
   {
-    LoggingHelper.LogRequest( _logger, "register a new user", registerDto );
+    _logger.LogInformation( "Received request to register a new user" );
 
-    User newUser = _userService.Register( registerDto );
+    User newUser = _userService.RegisterUser( registerDto );
 
-    LoggingHelper.LogSuccess( _logger, "User created successfully", new { Id = newUser.Id } );
+    _logger.LogInformation( "User created successfully" );
 
-    return CreatedAtAction(
-      nameof( Login ),
-      new { id = newUser.Id },
-      new { Message = "User created successfully" }
-    );
+    return Ok( "User created successfully" );
   }
 
   [AllowAnonymous]
   [HttpPost( "login" )]
   public IActionResult Login( [FromBody] LoginDto loginDto )
   {
-    LoggingHelper.LogRequest( _logger, "login", loginDto );
+    _logger.LogInformation( "Received request to login" );
 
     string? token = _authService.Login( loginDto );
 
-    LoggingHelper.LogSuccess( _logger, "User logged in successfully" );
+    _logger.LogInformation( "User logged in successfully" );
 
-    return Ok( new { Token = token } );
+    return Ok( "Log in succcessful" );
   }
 
   [AllowAnonymous]
   [HttpPost( "auth" )]
   public IActionResult Authorize( [FromBody] AuthDto authDto )
   {
-    LoggingHelper.LogRequest( _logger, "authorize", authDto );
+    _logger.LogInformation( "Received request to authorize" );
 
     bool isAuthorized = _authService.Authorize( authDto );
 
-    LoggingHelper.LogSuccess( _logger, "User authorized successfully" );
+    _logger.LogInformation( "User authorized successfully" );
 
-    return Ok( new { Message = "Authorization successful" } );
+    return Ok( "Authorization successful" );
   }
 }
