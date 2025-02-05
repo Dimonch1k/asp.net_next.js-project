@@ -17,7 +17,7 @@ public class VersionService : IVersionService
   private readonly Lazy<IUserService> _userService;
   private readonly ILogger<VersionService> _logger;
 
-  public VersionService( AppDbContext dbContext, Lazy<IUserService> userService, Lazy<IFileService> fileService, ILogger<VersionService> logger )
+  public VersionService( AppDbContext dbContext, Lazy<IUserService> userService, ILogger<VersionService> logger )
   {
     _dbContext = dbContext;
     _userService = userService;

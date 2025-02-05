@@ -17,7 +17,7 @@ public class SharedFileService : ISharedFileService
   private readonly IConfiguration _configuration;
   private readonly ILogger<SharedFileService> _logger;
 
-  public SharedFileService( AppDbContext dbContext, Lazy<IFileService> fileService, IConfiguration configuration, ILogger<SharedFileService> logger )
+  public SharedFileService( AppDbContext dbContext, IConfiguration configuration, ILogger<SharedFileService> logger )
   {
     _dbContext = dbContext;
     _configuration = configuration;

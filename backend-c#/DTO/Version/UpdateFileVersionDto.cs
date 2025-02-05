@@ -2,5 +2,5 @@
 
 public class UpdateFileVersionDto
 {
-  public string VersionName { get; set; }
+  public required string VersionName { get; set; }
 }

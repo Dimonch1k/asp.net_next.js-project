@@ -53,10 +53,10 @@ builder.Services.AddDbContext<AppDbContext>( options =>
     options.UseNpgsql( postgresConnection ) );
 
 // Configure FluentValidation validators
-builder.Services.AddFluentValidation( fv =>
-{
-  fv.RegisterValidatorsFromAssemblyContaining<LoginDtoValidator>();
-} );
+builder.Services.AddFluentValidationAutoValidation()
+  .AddFluentValidationClientsideAdapters()
+  .AddValidatorsFromAssemblyContaining<LoginDtoValidator>();
+
 
 // Configure logging
 builder.Logging

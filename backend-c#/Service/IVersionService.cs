@@ -13,6 +13,6 @@ public interface IVersionService
   FileVersionDto UpdateVersion( int id, UpdateFileVersionDto data );
   FileVersionDto DeleteVersion( int id );
 
-  public FileVersion GetFileVersionIfExists( int fileVersionId );
+  FileVersion GetFileVersionIfExists( int fileVersionId );
   void EnsureFileExistsAtPath( string path );
 }

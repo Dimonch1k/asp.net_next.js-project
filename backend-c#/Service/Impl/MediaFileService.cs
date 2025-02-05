@@ -60,19 +60,17 @@ public class MediaFileService : IFileService
   public async Task<FileDto> UploadFile( UploadFileDto data, IFormFile uploadedFile )
   {
     _userService.Value.EnsureUserExists( data.UserId );
-
     EnsureFileIsUnique( uploadedFile.FileName, data.UserId );
-
     PathHelper.EnsureDirectoryExists( PathHelper.tempFolder );
 
     string tempFilePath = Path.Combine( PathHelper.tempFolder, Guid.NewGuid() + "_" + uploadedFile.FileName );
 
-    using ( var stream = new FileStream( tempFilePath, FileMode.Create ) )
+    using ( FileStream stream = new FileStream( tempFilePath, FileMode.Create ) )
     {
       await uploadedFile.CopyToAsync( stream );
     }
 
-    FileScanRequest scanRequest = new()
+    FileScanRequest scanRequest = new FileScanRequest
     {
       FileId = Guid.NewGuid(),
       FilePath = tempFilePath,
@@ -93,18 +91,45 @@ public class MediaFileService : IFileService
       throw new ServerException( "Scan request not found", ExceptionStatusCode.ScanResultNotFound );
     }
 
-    if ( updatedRequest.Status.Equals( "harmless", StringComparison.OrdinalIgnoreCase )
-      || updatedRequest.Status.Equals( "Undetected", StringComparison.OrdinalIgnoreCase ) )
-    {
-      string filePath = SaveFile( data, uploadedFile.FileName, uploadedFile.ContentType );
+    return await ProcessScanResult( updatedRequest, data, uploadedFile.FileName, uploadedFile.ContentType, tempFilePath );
+  }
 
-      MediaFile newFile = new()
+  private async Task<FileScanRequest?> WaitForScanResult( Guid fileId, TimeSpan timeout )
+  {
+    DateTime startTime = DateTime.UtcNow;
+
+    while ( DateTime.UtcNow - startTime < timeout )
+    {
+      await Task.Delay( 1000 );
+      FileScanRequest? fileScanRequest = await _dbContext.FileScanRequests
+        .AsNoTracking()
+        .FirstOrDefaultAsync( fsr =>
+          fsr.FileId.Equals( fileId ) &&
+          ( fsr.Status.ToLower() == "clean"
+          || fsr.Status.ToLower() == "infected" )
+        );
+
+      if ( fileScanRequest != null )
+      {
+        return fileScanRequest;
+      }
+    }
+    return null;
+  }
+
+  private async Task<FileDto> ProcessScanResult( FileScanRequest request, UploadFileDto data, string fileName, string contentType, string tempFilePath )
+  {
+    if ( request.Status.ToLower() == "clean" )
+    {
+      string filePath = SaveFile( data, fileName, contentType );
+
+      MediaFile newFile = new MediaFile
       {
         UserId = data.UserId,
-        FileName = uploadedFile.FileName,
+        FileName = fileName,
         FilePath = filePath,
         FileSize = data.FileData.Length,
-        FileType = uploadedFile.ContentType,
+        FileType = contentType,
         CreatedAt = DateTime.UtcNow,
         UpdatedAt = DateTime.UtcNow
       };
@@ -115,8 +140,7 @@ public class MediaFileService : IFileService
       return FileToDto( newFile );
     }
 
-    if ( updatedRequest.Status.Equals( "malicious", StringComparison.OrdinalIgnoreCase )
-      || updatedRequest.Status.Equals( "suspicious", StringComparison.OrdinalIgnoreCase ) )
+    if ( request.Status.ToLower() == "infected" )
     {
       if ( System.IO.File.Exists( tempFilePath ) )
       {
@@ -131,34 +155,6 @@ public class MediaFileService : IFileService
     _logger.LogError( "Virus scan timeout. Please try again later." );
 
     throw new ServerException( "Virus scan timeout. Please try again later.", ExceptionStatusCode.ScanTimeout );
-  }
-
-  private async Task<FileScanRequest?> WaitForScanResult( Guid fileId, TimeSpan timeout )
-  {
-    DateTime startTime = DateTime.UtcNow;
-
-    while ( DateTime.UtcNow - startTime < timeout )
-    {
-      await Task.Delay( 1000 );
-
-      FileScanRequest? fileScanRequest = await _dbContext.FileScanRequests
-        .AsNoTracking()
-        .FirstOrDefaultAsync( fsr =>
-          fsr.FileId.Equals( fileId ) 
-          && (
-            fsr.Status.Equals( "undetected", StringComparison.OrdinalIgnoreCase ) ||
-            fsr.Status.Equals( "suspicious", StringComparison.OrdinalIgnoreCase ) ||
-            fsr.Status.Equals( "malicious", StringComparison.OrdinalIgnoreCase ) ||
-            fsr.Status.Equals( "harmless", StringComparison.OrdinalIgnoreCase )
-          )
-        );
-
-      if ( fileScanRequest != null )
-      {
-        return fileScanRequest;
-      }
-    }
-    return null;
   }
 
 

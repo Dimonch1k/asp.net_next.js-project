@@ -1,4 +1,5 @@
-﻿using backend_c_.Entity;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using backend_c_.Entity;
 
 namespace backend_c_.Entity;
 
@@ -9,5 +10,6 @@ public class Notification
   public string Message { get; set; } = string.Empty;
   public DateTime CreatedAt { get; set; }
 
+  [ForeignKey( "UserId" )]
   public User User { get; set; }
 }

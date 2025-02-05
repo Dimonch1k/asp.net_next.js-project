@@ -2,5 +2,5 @@
 
 public class UpdateFileDto
 {
-  public string FileName { get; set; }
+  public required string FileName { get; set; }
 }

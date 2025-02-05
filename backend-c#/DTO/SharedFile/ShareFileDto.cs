@@ -8,5 +8,5 @@ public class ShareFileDto
   public int FileId { get; set; }
   public int OwnerId { get; set; }
   public int SharedWithId { get; set; }
-  public string Permission { get; set; }
+  public required string Permission { get; set; }
 }

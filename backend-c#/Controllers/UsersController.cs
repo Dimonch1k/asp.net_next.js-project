@@ -80,9 +80,9 @@ public class UsersController : ControllerBase
 
     User newUser = _userService.RegisterUser( registerDto );
 
-    _logger.LogInformation( "User created successfully" );
+    _logger.LogInformation( "Register successful" );
 
-    return Ok( "User created successfully" );
+    return Ok( "Register successful" );
   }
 
   [AllowAnonymous]
@@ -95,7 +95,7 @@ public class UsersController : ControllerBase
 
     _logger.LogInformation( "User logged in successfully" );
 
-    return Ok( "Log in succcessful" );
+    return Ok( new { Token = token } );
   }
 
   [AllowAnonymous]
