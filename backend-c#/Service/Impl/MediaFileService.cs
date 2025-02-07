@@ -61,9 +61,9 @@ public class MediaFileService : IFileService
   {
     _userService.Value.EnsureUserExists( data.UserId );
     EnsureFileIsUnique( uploadedFile.FileName, data.UserId );
-    PathHelper.EnsureDirectoryExists( PathHelper.tempFolder );
+    PathHelper.EnsureDirectoryExists( PathHelper._tempFolder );
 
-    string tempFilePath = Path.Combine( PathHelper.tempFolder, Guid.NewGuid() + "_" + uploadedFile.FileName );
+    string tempFilePath = Path.Combine( PathHelper._tempFolder, Guid.NewGuid() + "_" + uploadedFile.FileName );
 
     using ( FileStream stream = new FileStream( tempFilePath, FileMode.Create ) )
     {
@@ -75,7 +75,7 @@ public class MediaFileService : IFileService
       FileId = Guid.NewGuid(),
       FilePath = tempFilePath,
       FileName = uploadedFile.FileName,
-      Status = "Pending",
+      Status = RequestStatus.pending.ToString(),
       CreatedAt = DateTime.UtcNow
     };
 
@@ -105,8 +105,8 @@ public class MediaFileService : IFileService
         .AsNoTracking()
         .FirstOrDefaultAsync( fsr =>
           fsr.FileId.Equals( fileId ) &&
-          ( fsr.Status.ToLower() == "clean"
-          || fsr.Status.ToLower() == "infected" )
+          ( fsr.Status.ToLower() == RequestStatus.clean.ToString()
+          || fsr.Status.ToLower() == RequestStatus.infected.ToString() )
         );
 
       if ( fileScanRequest != null )
@@ -119,7 +119,7 @@ public class MediaFileService : IFileService
 
   private async Task<FileDto> ProcessScanResult( FileScanRequest request, UploadFileDto data, string fileName, string contentType, string tempFilePath )
   {
-    if ( request.Status.ToLower() == "clean" )
+    if ( request.Status.ToLower() == RequestStatus.clean.ToString() )
     {
       string filePath = SaveFile( data, fileName, contentType );
 
@@ -140,7 +140,7 @@ public class MediaFileService : IFileService
       return FileToDto( newFile );
     }
 
-    if ( request.Status.ToLower() == "infected" )
+    if ( request.Status.ToLower() == RequestStatus.infected.ToString() )
     {
       if ( System.IO.File.Exists( tempFilePath ) )
       {

@@ -1,5 +1,7 @@
 using Autofac.Core;
 using backend_c_;
+using backend_c_.Enums;
+using backend_c_.Exceptions;
 using backend_c_.Service;
 using backend_c_.Service.Impl;
 using backend_c_.Validators.User;
@@ -14,30 +16,31 @@ using System.Text;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder( args );
 
-// Load environment variables from .env
 DotEnv.Load();
 
-// Read the connection string from environment variables
 string? postgresConnection = Environment.GetEnvironmentVariable( "PostgreSqlConnection" );
 string? jwtSecret = Environment.GetEnvironmentVariable( "JwtSecret" );
+string? PATH_BASE_DIR = Environment.GetEnvironmentVariable( "PATH_BASE_DIRECTORY_WINDOWS" );
 
-// Ensure that necessary environment variables are loaded
 if ( string.IsNullOrEmpty( postgresConnection ) )
 {
-  throw new InvalidOperationException( "PostgreSqlConnection is not defined in the environment variables." );
+  throw new ServerException( "PostgreSqlConnection is not defined in the environment variables.", ExceptionStatusCode.InternalServerError );
 }
 
 if ( string.IsNullOrEmpty( jwtSecret ) )
 {
-  throw new InvalidOperationException( "JwtSecret is not defined in the environment variables." );
+  throw new ServerException( "JwtSecret is not defined in the environment variables.", ExceptionStatusCode.InternalServerError );
+}
+
+if ( string.IsNullOrEmpty( PATH_BASE_DIR ) )
+{
+  throw new ServerException( "PATH_BASE_DIRECTORY_WINDOWS is not defined in the environment variables.", ExceptionStatusCode.InternalServerError );
 }
 
 builder.Configuration["Jwt:Secret"] = jwtSecret;
 
-// Configure the ConnectionStrings in Configuration
 builder.Configuration["ConnectionStrings:PostgreSqlConnection"] = postgresConnection;
 
-// Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -48,22 +51,18 @@ builder.Services.AddScoped<IVersionService, VersionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped( typeof( Lazy<> ), typeof( LazyDependency<> ) );
 
-// Configure DbContext for PostgreSQL
 builder.Services.AddDbContext<AppDbContext>( options =>
     options.UseNpgsql( postgresConnection ) );
 
-// Configure FluentValidation validators
 builder.Services.AddFluentValidationAutoValidation()
   .AddFluentValidationClientsideAdapters()
   .AddValidatorsFromAssemblyContaining<LoginDtoValidator>();
 
 
-// Configure logging
 builder.Logging
     .ClearProviders()
     .AddConsole();
 
-// Configure JWT authentication
 builder.Services.AddAuthentication( options =>
 {
   options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -93,11 +92,8 @@ builder.Services.AddAuthentication( options =>
     };
   } );
 
-
-// Build the application
 WebApplication app = builder.Build();
 
-// Configure the middleware pipeline
 app.UseHttpsRedirection();
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthentication();
@@ -107,5 +103,4 @@ app.UseStaticFiles();
 
 app.MapControllers();
 
-// Run the application
 app.Run();
