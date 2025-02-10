@@ -4,6 +4,7 @@ using backend_c_.Enums;
 using backend_c_.Exceptions;
 using backend_c_.Service;
 using backend_c_.Service.Impl;
+using backend_c_.Utilities;
 using backend_c_.Validators.User;
 using dotenv.net;
 using FluentValidation;
@@ -50,6 +51,8 @@ builder.Services.AddScoped<IAccessLogService, AccessLogService>();
 builder.Services.AddScoped<IVersionService, VersionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped( typeof( Lazy<> ), typeof( LazyDependency<> ) );
+
+builder.Services.AddScoped<TimeZoneHelper>();
 
 builder.Services.AddDbContext<AppDbContext>( options =>
     options.UseNpgsql( postgresConnection ) );

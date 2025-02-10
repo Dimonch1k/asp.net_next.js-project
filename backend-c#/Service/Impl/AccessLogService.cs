@@ -1,10 +1,12 @@
-﻿using backend_c_.DTO.Access;
+﻿using System;
+using backend_c_.DTO.Access;
 using backend_c_.DTO.Notification;
 using backend_c_.Entity;
 using backend_c_.Enums;
 using backend_c_.Exceptions;
 using backend_c_.Utilities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Npgsql.PostgresTypes;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -18,8 +20,9 @@ public class AccessLogService : IAccessLogService
   private readonly Lazy<ISharedFileService> _sharedFileService;
   private readonly Lazy<INotificationService> _notificationService;
   private readonly ILogger<AccessLogService> _logger;
+  private readonly TimeZoneHelper _timeZoneHelper;
 
-  public AccessLogService( AppDbContext dbContext, Lazy<IUserService> userService, Lazy<IFileService> fileService, Lazy<ISharedFileService> sharedFileService, Lazy<INotificationService> notificationService, ILogger<AccessLogService> logger )
+  public AccessLogService( AppDbContext dbContext, Lazy<IUserService> userService, Lazy<IFileService> fileService, Lazy<ISharedFileService> sharedFileService, Lazy<INotificationService> notificationService, ILogger<AccessLogService> logger, TimeZoneHelper timeZoneHelper )
   {
     _dbContext = dbContext;
     _userService = userService;
@@ -27,6 +30,7 @@ public class AccessLogService : IAccessLogService
     _sharedFileService = sharedFileService;
     _notificationService = notificationService;
     _logger = logger;
+    _timeZoneHelper = timeZoneHelper;
   }
 
   public IEnumerable<AccessLogDto> GetAllAccessLogs( )
@@ -36,19 +40,26 @@ public class AccessLogService : IAccessLogService
       .ToList();
   }
 
-  public IEnumerable<AccessLogDto> GetAccessLogsByFileId( int fileId )
+  public async Task<AccessLogDto> GetAccessLogById( int id )
   {
-    _fileService.Value.EnsureFileExists( fileId );
+    AccessLog? accessLog = await GetAccessLogIfExists( id );
+
+    return AccessLogToDto( accessLog );
+  }
+
+  public async Task<IEnumerable<AccessLogDto>> GetAccessLogsBySharedFileId( int sharedFileId )
+  {
+    SharedFile? sharedFile = await _sharedFileService.Value.GetSharedFileIfExists( sharedFileId );
 
     return _dbContext.AccessLogs
-      .Where( log => log.FileId == fileId )
+      .Where( log => log.SharedFileId == sharedFileId )
       .Select( AccessLogToDto )
       .ToList();
   }
 
-  public IEnumerable<AccessLogDto> GetAccessLogsByUserId( int userId )
+  public async Task<IEnumerable<AccessLogDto>> GetAccessLogsByUserId( int userId )
   {
-    _userService.Value.EnsureUserExists( userId );
+    await _userService.Value.EnsureUserExists( userId );
 
     return _dbContext.AccessLogs
       .Where( log => log.UserId == userId )
@@ -56,35 +67,22 @@ public class AccessLogService : IAccessLogService
       .ToList();
   }
 
-
-  public AccessLogDto GetAccessLogById( int id )
+  public async Task<AccessLogDto> CreateAccessLog( CreateAccessLogDto createAccessLogDto )
   {
-    AccessLog? accessLog = GetAccessLogIfExists( id );
+    // When someone accessed the file (read - opened; write - changed smth. in file; download)
+    SharedFile? sharedFile = await _sharedFileService.Value.GetSharedFileIfExists( createAccessLogDto.SharedFileId );
 
-    return AccessLogToDto( accessLog );
-  }
+    EnsureUserIsNotSharedFileOwner( createAccessLogDto.UserId, sharedFile.OwnerId );
 
-  public AccessLogDto CreateAccessLog( CreateAccessLogDto createAccessLogDto )
-  {
-    MediaFile? file = _fileService.Value.GetFileIfExists( createAccessLogDto.FileId );
+    await _userService.Value.EnsureUserExists( createAccessLogDto.UserId );
 
-    _fileService.Value.EnsureFileIsNotNull( file );
+    MediaFile? file = await _fileService.Value.GetFileIfExists( sharedFile.FileId );
 
-    CheckIfUserIdMatch( file?.UserId, createAccessLogDto.UserId );
-
-    SharedFile? sharedFile = _dbContext.SharedFiles
-    .FirstOrDefault(
-      sf => sf.FileId == createAccessLogDto.FileId
-      && sf.SharedWithId == createAccessLogDto.UserId
-    );
-
-    _sharedFileService.Value.EnsureSharedFileIsNotNull( sharedFile );
-
-    IsAccessAllowed( sharedFile?.Permission, createAccessLogDto.AccessType );
+    IsAccessAllowed( sharedFile.Permission, createAccessLogDto.AccessType );
 
     AccessLog newAccessLog = new AccessLog
     {
-      FileId = createAccessLogDto.FileId,
+      SharedFileId = sharedFile.Id,
       UserId = createAccessLogDto.UserId,
       AccessType = (AccessType) Enum.Parse( typeof( AccessType ), createAccessLogDto.AccessType.ToLower() ),
       AccessTime = DateTime.UtcNow
@@ -94,14 +92,16 @@ public class AccessLogService : IAccessLogService
     _dbContext.SaveChanges();
 
     // Send notification to file owner if some action happened (open, write, download)
-    SendNotification( file, createAccessLogDto );
+    await SendNotification( sharedFile, createAccessLogDto, file.FileName );
+
+    await _userService.Value.EnsureUserExists( createAccessLogDto.UserId );
 
     return AccessLogToDto( newAccessLog );
   }
 
-  public AccessLogDto UpdateAccessLog( int id, UpdateAccessLogDto updateAccessLogDto )
+  public async Task<AccessLogDto> UpdateAccessLog( int id, UpdateAccessLogDto updateAccessLogDto )
   {
-    AccessLog? accessLog = GetAccessLogIfExists( id );
+    AccessLog? accessLog = await GetAccessLogIfExists( id );
 
     accessLog.AccessType = (AccessType) Enum.Parse( typeof( AccessType ), updateAccessLogDto.AccessType.ToLower() );
 
@@ -111,9 +111,9 @@ public class AccessLogService : IAccessLogService
     return AccessLogToDto( accessLog );
   }
 
-  public AccessLogDto DeleteAccessLog( int id )
+  public async Task<AccessLogDto> DeleteAccessLog( int id )
   {
-    AccessLog? accessLog = GetAccessLogIfExists( id );
+    AccessLog? accessLog = await GetAccessLogIfExists( id );
 
     _dbContext.AccessLogs.Remove( accessLog );
     _dbContext.SaveChanges();
@@ -122,9 +122,9 @@ public class AccessLogService : IAccessLogService
   }
 
 
-  public AccessLog GetAccessLogIfExists( int accessLogId )
+  private async Task<AccessLog> GetAccessLogIfExists( int accessLogId )
   {
-    AccessLog? accessLog = _dbContext.AccessLogs.Find( accessLogId );
+    AccessLog? accessLog = await _dbContext.AccessLogs.FindAsync( accessLogId );
 
     if ( accessLog == null )
     {
@@ -136,51 +136,51 @@ public class AccessLogService : IAccessLogService
     return accessLog;
   }
 
-  private void SendNotification( MediaFile? file, CreateAccessLogDto dto )
+  private void EnsureUserIsNotSharedFileOwner( int userId, int ownerId )
   {
-    string message = $"Your file '{file?.FileName}' was {dto.AccessType.ToString().ToLower()} by user {dto.UserId}.";
+    if ( userId == ownerId )
+    {
+      _logger.LogInformation( "Access Log can't be created if owner of shared file accesses it." );
 
-    _notificationService.Value.SendNotification(
+      throw new ServerException( "Access Log can't be created if owner of shared file accesses it.", ExceptionStatusCode.BadRequest );
+    }
+  }
+
+  private async Task SendNotification( SharedFile sharedFile, CreateAccessLogDto dto, string fileName )
+  {
+    string message = $"Your file '{fileName}' was {dto.AccessType.ToString().ToLower()} by user {dto.UserId}.";
+
+    await _notificationService.Value.SendNotification(
       new CreateNotificationDto
       {
-        UserId = file.UserId,
+        UserId = sharedFile.OwnerId,
         Message = message
       }
     );
   }
 
-  private void IsAccessAllowed( AccessType? permission, string requestedAccess )
+  private void IsAccessAllowed( AccessType permission, string requestedAccess )
   {
     AccessType reqAccess = (AccessType) Enum.Parse( typeof( AccessType ), requestedAccess.ToLower() );
 
     if ( ( permission == AccessType.read && reqAccess != AccessType.read )
       || ( permission == AccessType.write && reqAccess == AccessType.download ) )
     {
-      _logger.LogInformation( "You haven't access to this file!" );
+      _logger.LogInformation( "You haven't propper permission to this file!" );
 
-      throw new ServerException( "You haven't access to this file!", ExceptionStatusCode.FileNotAccessible );
+      throw new ServerException( "You haven't propper permission to this file!", ExceptionStatusCode.FileNotAccessible );
     }
   }
 
-  private void CheckIfUserIdMatch( int? fileUserId, int accessLogUserId )
-  {
-    if ( fileUserId != accessLogUserId )
-    {
-      _logger.LogInformation( $"User ID='{fileUserId}' and Access Log User ID='{accessLogUserId}' don't match" );
-
-      throw new ServerException( $"User ID='{fileUserId}' and Access Log User ID='{accessLogUserId}' don't match", ExceptionStatusCode.BadRequest );
-    }
-  }
-
-  private AccessLogDto AccessLogToDto( AccessLog accessLog )
+  private static AccessLogDto AccessLogToDto( AccessLog accessLog )
   {
     return new AccessLogDto
     {
       Id = accessLog.Id,
-      FileId = accessLog.FileId,
+      SharedFileId = accessLog.SharedFileId,
       UserId = accessLog.UserId,
       AccessType = accessLog.AccessType.ToString(),
-      AccessTime = accessLog.AccessTime
+      AccessTime = accessLog.AccessTime,
     };
   }
 }

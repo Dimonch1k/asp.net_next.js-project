@@ -52,11 +52,11 @@ public class MediaFilesController : ControllerBase
   }
 
   [HttpPost( "{id}" )]
-  public IActionResult UpdateFile( int id, [FromBody] UpdateFileDto data )
+  public async Task<IActionResult> UpdateFile( int id, [FromBody] UpdateFileDto data )
   {
     _logger.LogInformation( $"Received request to update file with ID: {id}" );
 
-    FileDto fileDto = _fileService.UpdateFile( id, data );
+    FileDto fileDto = await _fileService.UpdateFile( id, data );
 
     _logger.LogInformation( "File updated successfully" );
 
@@ -64,11 +64,11 @@ public class MediaFilesController : ControllerBase
   }
 
   [HttpDelete( "{id}" )]
-  public IActionResult DeleteFile( int id )
+  public async Task<IActionResult> DeleteFile( int id )
   {
     _logger.LogInformation( $"Received request to delete file with ID: {id}" );
 
-    FileDto fileDto = _fileService.DeleteFile( id );
+    FileDto fileDto = await _fileService.DeleteFile( id );
 
     _logger.LogInformation( "File deleted successfully" );
 
@@ -76,11 +76,11 @@ public class MediaFilesController : ControllerBase
   }
 
   [HttpGet( "my-files/{userId}" )]
-  public IActionResult GetMyFiles( int userId )
+  public async Task<IActionResult> GetMyFiles( int userId )
   {
     _logger.LogInformation( $"Received request to get files for user with ID: {userId}" );
 
-    IEnumerable<FileDto> userFilesDto = _fileService.GetUserFiles( userId );
+    IEnumerable<FileDto> userFilesDto = await _fileService.GetUserFiles( userId );
 
     _logger.LogInformation( "Returning files for user" );
 
@@ -88,11 +88,11 @@ public class MediaFilesController : ControllerBase
   }
 
   [HttpGet( "shared-to-me/{userId}" )]
-  public IActionResult GetFilesSharedToMe( int userId )
+  public async Task<IActionResult> GetFilesSharedToMe( int userId )
   {
     _logger.LogInformation( $"Received request to get files shared to user with ID: {userId}" );
 
-    IEnumerable<ShareFileDto> sharedToUserFilesDto = _fileService.GetFilesSharedToMe( userId );
+    IEnumerable<ShareFileDto> sharedToUserFilesDto = await _fileService.GetFilesSharedToMe( userId );
 
     _logger.LogInformation( "Returning files shared to user" );
 
@@ -100,11 +100,11 @@ public class MediaFilesController : ControllerBase
   }
 
   [HttpGet( "shared-by-me/{userId}" )]
-  public IActionResult GetFilesSharedByMe( int userId )
+  public async Task<IActionResult> GetFilesSharedByMe( int userId )
   {
     _logger.LogInformation( $"Received request to get files shared by user with ID: {userId}" );
 
-    IEnumerable<ShareFileDto> sharedByUserFilesDto = _fileService.GetFilesSharedByMe( userId );
+    IEnumerable<ShareFileDto> sharedByUserFilesDto = await _fileService.GetFilesSharedByMe( userId );
 
     _logger.LogInformation( "Returning files shared by user" );
 

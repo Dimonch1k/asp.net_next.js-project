@@ -21,14 +21,38 @@ public class NotificationsController : ControllerBase
   }
 
   [HttpGet( "{id}" )]
-  public IActionResult GetUserNotifications( int id )
+  public async Task<IActionResult> GetUserNotifications( int id )
   {
     _logger.LogInformation( $"Received request to get user's notifications with ID: {id}" );
 
-    IEnumerable<NotificationDto> notificationsDto = _notificationService.GetUserNotifications( id );
+    IEnumerable<NotificationDto> notificationsDto = await _notificationService.GetUserNotifications( id );
 
     _logger.LogInformation( "Notifications received successfully" );
 
     return Ok( notificationsDto );
+  }
+
+  [HttpDelete( "{notificationId}" )]
+  public async Task<IActionResult> DeleteUserNotification( int notificationId )
+  {
+    _logger.LogInformation( $"Received request to delete user's notification with ID: {notificationId}" );
+
+    await _notificationService.DeleteUserNotification( notificationId );
+
+    _logger.LogInformation( "Notifications removed successfully" );
+
+    return Ok( "Notification deleted successfully" );
+  }
+
+  [HttpDelete( "delete-all/{userId}" )]
+  public IActionResult DeleteAllUserNotifications( int userId )
+  {
+    _logger.LogInformation( $"Received request to delete all notifications for user with ID: {userId}" );
+
+    _notificationService.DeleteUserNotifications( userId );
+
+    _logger.LogInformation( "All notifications deleted successfully" );
+
+    return Ok( "All notifications deleted successfully" );
   }
 }

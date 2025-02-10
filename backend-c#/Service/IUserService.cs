@@ -6,13 +6,14 @@ namespace backend_c_.Service;
 public interface IUserService
 {
   List<UserDto> GetAllUsers( );
-  UserDto GetUserById( int id );
-  UserDto UpdateUser( int id, UpdateUserDto data );
-  UserDto DeleteUser( int id );
-  User RegisterUser( RegisterDto registerDto );
+  Task<UserDto> GetUserById( int id );
+  Task<UserDto> UpdateUser( int id, UpdateUserDto data );
+  Task<UserDto> DeleteUser( int id );
+  Task<User> RegisterUser( RegisterDto registerDto );
 
-  User GetUserIfExists( int id );
-  void EnsureUserExists( int id );
-  void EnsureUserIsNotNull( User? user );
-  void EnsureUserIsUnique( string username, string email );
+  Task<User> GetUserIfExists( int? id );
+  Task<User> GetUserByUsernameIfExists( string username );
+  Task EnsureUserExists( int? id );
+  Task EnsureUserIsUnique( string username, string email );
+  string GetUserTimeZone( int? id );
 }

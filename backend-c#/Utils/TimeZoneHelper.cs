@@ -1,8 +1,21 @@
-﻿namespace backend_c_.Utilities;
+﻿using backend_c_.Entity;
+using backend_c_.Exceptions;
+using backend_c_.Service;
+
+namespace backend_c_.Utilities;
 
 public class TimeZoneHelper
 {
-  public static DateTime ConvertToUserTimeZone( DateTime utcDateTime, string timeZoneId )
+  private readonly AppDbContext _dbContext;
+  private readonly Lazy<IUserService> _userService;
+
+  public TimeZoneHelper( AppDbContext dbContext, Lazy<IUserService> userService )
+  {
+    _dbContext = dbContext;
+    _userService = userService;
+  }
+
+  public DateTime ConvertToUserTimeZone( DateTime utcDateTime, string timeZoneId )
   {
     try
     {
@@ -19,8 +32,18 @@ public class TimeZoneHelper
     }
   }
 
-  public static bool IsValidTimeZoneId( string timeZoneId )
+  public bool IsValidTimeZoneId( string timeZoneId )
   {
     return TimeZoneInfo.GetSystemTimeZones().Any( tz => tz.Id == timeZoneId );
   }
+
+  public string GetHumanReadableTime( DateTime time, string timeZoneId )
+  {
+    return ConvertToUserTimeZone( time, timeZoneId ).ToString( "g" );
+  }
+
+  //public string GetHumanReadableTimeByUserId( DateTime time, string timeZoneId )
+  //{
+  //  return ConvertToUserTimeZone( time, timeZoneId ).ToString( "g" );
+  //}
 }

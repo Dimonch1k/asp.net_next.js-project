@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using backend_c_;
@@ -11,9 +12,11 @@ using backend_c_;
 namespace backend_c_.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250207171310_FixSharedWithForeignKey")]
+    partial class FixSharedWithForeignKey
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -36,10 +39,10 @@ namespace backend_c_.Migrations
                     b.Property<int>("AccessType")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("MediaFileId")
+                    b.Property<int>("FileId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("SharedFileId")
+                    b.Property<int?>("MediaFileId")
                         .HasColumnType("integer");
 
                     b.Property<int>("UserId")
@@ -50,9 +53,9 @@ namespace backend_c_.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MediaFileId");
+                    b.HasIndex("FileId");
 
-                    b.HasIndex("SharedFileId");
+                    b.HasIndex("MediaFileId");
 
                     b.HasIndex("UserId");
 
@@ -190,7 +193,7 @@ namespace backend_c_.Migrations
                     b.Property<string>("Message")
                         .HasColumnType("text");
 
-                    b.Property<int?>("UserId")
+                    b.Property<int>("UserId")
                         .HasColumnType("integer");
 
                     b.Property<int?>("UserId1")
@@ -295,15 +298,15 @@ namespace backend_c_.Migrations
 
             modelBuilder.Entity("backend_c_.Entity.AccessLog", b =>
                 {
+                    b.HasOne("backend_c_.Entity.MediaFile", "File")
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("backend_c_.Entity.MediaFile", null)
                         .WithMany("AccessLogs")
                         .HasForeignKey("MediaFileId");
-
-                    b.HasOne("backend_c_.Entity.SharedFile", "SharedFile")
-                        .WithMany()
-                        .HasForeignKey("SharedFileId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.HasOne("backend_c_.Entity.User", "User")
                         .WithMany()
@@ -315,7 +318,7 @@ namespace backend_c_.Migrations
                         .WithMany("AccessLogs")
                         .HasForeignKey("UserId1");
 
-                    b.Navigation("SharedFile");
+                    b.Navigation("File");
 
                     b.Navigation("User");
                 });
@@ -355,7 +358,8 @@ namespace backend_c_.Migrations
                     b.HasOne("backend_c_.Entity.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("backend_c_.Entity.User", null)
                         .WithMany("notifications")

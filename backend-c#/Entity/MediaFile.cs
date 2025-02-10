@@ -15,7 +15,8 @@ public class MediaFile
   public DateTime? DeletedAt { get; set; }
 
   [ForeignKey( "UserId" )]
-  public User User { get; set; }
+  public User? User { get; set; }
+
   public List<AccessLog> AccessLogs { get; set; } = new();
   public List<FileVersion> Versions { get; set; } = new();
   public List<SharedFile> SharedFiles { get; set; } = new();

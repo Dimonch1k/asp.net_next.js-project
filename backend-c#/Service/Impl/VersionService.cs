@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace backend_c_.Service.Impl;
 
@@ -33,26 +34,27 @@ public class VersionService : IVersionService
 
   public IEnumerable<FileVersionDto> GetVersionsByFileId( int fileId )
   {
+    // Verification if file exists is in controller to prevent from services' refering loop
     return _dbContext.FileVersions
       .Where( fileVersion => fileVersion.FileId == fileId )
       .Select( VersionToDto )
       .ToList();
   }
 
-  public FileVersionDto GetVersionById( int id )
+  public async Task<FileVersionDto> GetVersionById( int id )
   {
-    FileVersion? fileVersion = GetFileVersionIfExists( id );
+    FileVersion? fileVersion = await GetFileVersionIfExists( id );
 
     return VersionToDto( fileVersion );
   }
 
-  public FileVersionDto CreateVersion( CreateFileVersionDto data, MediaFile file )
+  public async Task<FileVersionDto> CreateVersion( CreateFileVersionDto data, MediaFile file )
   {
-    EnsureFileExistsAtPath( file.FilePath );
+    PathHelper.EnsureFileExistsAtPath( file.FilePath );
 
-    User? user = _userService.Value.GetUserIfExists( file.UserId );
+    EnsureFileVersionIsUnique( data.VersionName, data.FileId );
 
-    _userService.Value.EnsureUserIsNotNull( user );
+    User? user = await _userService.Value.GetUserIfExists( file.UserId );
 
     string destinationPath = PathHelper.GetVersionPath( user.Id, data.FileId, data.VersionName );
 
@@ -74,7 +76,7 @@ public class VersionService : IVersionService
 
   public FileVersionDto RestoreFileVersion( int versionId, MediaFile file, FileVersion fileVersion )
   {
-    EnsureFileExistsAtPath( fileVersion.VersionPath );
+    PathHelper.EnsureFileExistsAtPath( fileVersion.VersionPath );
 
     File.Copy( fileVersion.VersionPath, file.FilePath, overwrite: true );
     file.UpdatedAt = DateTime.UtcNow;
@@ -85,15 +87,18 @@ public class VersionService : IVersionService
     return VersionToDto( fileVersion );
   }
 
-  public FileVersionDto UpdateVersion( int id, UpdateFileVersionDto data )
+  public async Task<FileVersionDto> UpdateVersion( int id, UpdateFileVersionDto data )
   {
-    FileVersion? fileVersion = GetFileVersionIfExists( id );
+    FileVersion? fileVersion = await GetFileVersionIfExists( id );
+
+    EnsureFileVersionIsUnique( data.VersionName, fileVersion.FileId );
 
     string oldFileVersionPath = fileVersion.VersionPath;
     string newFileVersionPath = PathHelper.UpdatePath( fileVersion.VersionPath, data.VersionName );
 
-    EnsureFileExistsAtPath( oldFileVersionPath );
+    PathHelper.EnsureFileExistsAtPath( oldFileVersionPath );
 
+    // File path name change, not moving file version to new path
     File.Move( oldFileVersionPath, newFileVersionPath );
 
     fileVersion.VersionName = data.VersionName;
@@ -105,9 +110,9 @@ public class VersionService : IVersionService
     return VersionToDto( fileVersion );
   }
 
-  public FileVersionDto DeleteVersion( int id )
+  public async Task<FileVersionDto> DeleteVersion( int id )
   {
-    FileVersion? fileVersion = GetFileVersionIfExists( id );
+    FileVersion? fileVersion = await GetFileVersionIfExists( id );
 
     _dbContext.FileVersions.Remove( fileVersion );
     _dbContext.SaveChanges();
@@ -116,9 +121,9 @@ public class VersionService : IVersionService
   }
 
 
-  public FileVersion GetFileVersionIfExists( int fileVersionId )
+  public async Task<FileVersion> GetFileVersionIfExists( int fileVersionId )
   {
-    FileVersion? fileVersion = _dbContext.FileVersions.Find( fileVersionId );
+    FileVersion? fileVersion = await _dbContext.FileVersions.FindAsync( fileVersionId );
 
     if ( fileVersion == null )
     {
@@ -130,17 +135,22 @@ public class VersionService : IVersionService
     return fileVersion;
   }
 
-  public void EnsureFileExistsAtPath( string path )
+  private void EnsureFileVersionIsUnique( string versionName, int fileId )
   {
-    if ( !File.Exists( path ) )
-    {
-      _logger.LogError( $"File not found at {path}" );
+    FileVersion? version = _dbContext.FileVersions.FirstOrDefault(
+      v => v.VersionName == versionName
+        && v.FileId == fileId
+    );
 
-      throw new ServerException( $"File not found at {path}", ExceptionStatusCode.DirectoryNotFound );
+    if ( version != null )
+    {
+      _logger.LogError( $"The file version with Name: '{versionName}' already exists. Choose another name" );
+
+      throw new ServerException( $"The file version with Name: '{versionName}' already exists. Choose another name", ExceptionStatusCode.FileVersionDuplicate );
     }
   }
 
-  private FileVersionDto VersionToDto( FileVersion version )
+  private static FileVersionDto VersionToDto( FileVersion version )
   {
     return new FileVersionDto
     {

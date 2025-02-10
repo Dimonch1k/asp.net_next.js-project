@@ -8,6 +8,8 @@ using backend_c_.Enums;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using backend_c_.Exceptions;
 using backend_c_.Utilities;
+using backend_c_.DTO.Access;
+using System.Diagnostics.Eventing.Reader;
 
 namespace backend_c_.Service.Impl;
 
@@ -24,15 +26,37 @@ public class SharedFileService : ISharedFileService
     _logger = logger;
   }
 
+  public IEnumerable<ShareFileDto> GetAllSharedFiles( )
+  {
+    return _dbContext.SharedFiles
+      .Select( SharedFileToDto )
+      .ToArray();
+  }
+
+  public IEnumerable<ShareFileDto> GetMySharedFiles( int ownerId )
+  {
+    return _dbContext.SharedFiles
+      .Where( sh => sh.OwnerId == ownerId )
+      .Select( SharedFileToDto )
+      .ToArray();
+  }
+
   public ShareFileDto ShareFile( ShareFileDto data )
   {
+    // Verifications for files and users correctness was placed into controller
+    // to prevent services' referencing to each other
+
+    EnsureSharedFileUnique( data.OwnerId, data.SharedWithId, data.FileId );
+
+    AccessType validatedPermission = ValidationHelpers.EnsureAccessTypeExists( data.Permission );
+
     SharedFile sharedFile = new SharedFile
     {
       Id = data.Id,
       FileId = data.FileId,
       OwnerId = data.OwnerId,
       SharedWithId = data.SharedWithId,
-      Permission = (AccessType) Enum.Parse( typeof( AccessType ), data.Permission.ToLower() )
+      Permission = validatedPermission
     };
 
     _dbContext.SharedFiles.Add( sharedFile );
@@ -41,9 +65,9 @@ public class SharedFileService : ISharedFileService
     return SharedFileToDto( sharedFile );
   }
 
-  public ShareFileDto DeleteSharedFile( int id )
+  public async Task<ShareFileDto> DeleteSharedFile( int? id )
   {
-    SharedFile? sharedFile = GetSharedFileIfExists( id );
+    SharedFile? sharedFile = await GetSharedFileIfExists( id );
 
     _dbContext.SharedFiles.Remove( sharedFile );
     _dbContext.SaveChanges();
@@ -51,10 +75,9 @@ public class SharedFileService : ISharedFileService
     return SharedFileToDto( sharedFile );
   }
 
-
-  public SharedFile GetSharedFileIfExists( int sharedFileId )
+  public async Task<SharedFile> GetSharedFileIfExists( int? sharedFileId )
   {
-    SharedFile? sharedFile = _dbContext.SharedFiles.Find( sharedFileId );
+    SharedFile? sharedFile = await _dbContext.SharedFiles.FindAsync( sharedFileId );
 
     if ( sharedFile == null )
     {
@@ -66,13 +89,18 @@ public class SharedFileService : ISharedFileService
     return sharedFile;
   }
 
-  public void EnsureSharedFileIsNotNull( SharedFile? sharedFile )
+  public void EnsureSharedFileUnique( int ownerId, int sharedWithId, int fileId )
   {
-    if ( sharedFile == null )
-    {
-      _logger.LogError( "Shared file not found" );
+    SharedFile? sharedFile = _dbContext.SharedFiles.FirstOrDefault(
+      sh => sh.OwnerId == ownerId
+         && sh.SharedWithId == sharedWithId
+         && sh.FileId == fileId );
 
-      throw new ServerException( $"Shared file not found", ExceptionStatusCode.SharedFileNotFound );
+    if ( sharedFile != null )
+    {
+      _logger.LogError( $"You have already shared the file with ID: '{fileId}' to user with ID: '{sharedWithId}'" );
+
+      throw new ServerException( $"You have already shared the file with ID: '{fileId}' to user with ID: '{sharedWithId}'", ExceptionStatusCode.SharedFileDuplicate );
     }
   }
 
