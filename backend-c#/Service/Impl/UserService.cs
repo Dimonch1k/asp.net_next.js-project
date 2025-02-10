@@ -20,23 +20,23 @@ public class UserService : IUserService
     _logger = logger;
   }
 
-  public List<UserDto> FindAll( )
+  public List<UserDto> GetAllUsers( )
   {
     return _dbContext.Users
       .Select( user => UserToDto( user ) )
       .ToList();
   }
 
-  public UserDto FindOne( int id )
+  public UserDto GetUserById( int id )
   {
-    User user = CheckIfUserExists( id );
+    User user = GetUserIfExists( id );
 
     return UserToDto( user );
   }
 
-  public UserDto Update( int id, UpdateUserDto data )
+  public UserDto UpdateUser( int id, UpdateUserDto data )
   {
-    User user = CheckIfUserExists( id );
+    User user = GetUserIfExists( id );
 
     user.Username = data.Username;
     user.Email = data.Email;
@@ -53,9 +53,9 @@ public class UserService : IUserService
     };
   }
 
-  public UserDto Remove( int id )
+  public UserDto DeleteUser( int id )
   {
-    User user = CheckIfUserExists( id );
+    User user = GetUserIfExists( id );
 
     _dbContext.Users.Remove( user );
     _dbContext.SaveChanges();
@@ -63,14 +63,9 @@ public class UserService : IUserService
     return UserToDto( user );
   }
 
-  public User Register( RegisterDto registerDto )
+  public User RegisterUser( RegisterDto registerDto )
   {
-    if ( UserExists( registerDto.Username, registerDto.Email ) )
-    {
-      LoggingHelper.LogFailure( _logger, "Username or email already exists", registerDto );
-
-      throw new ServerException( "Username or Email already exists", ExceptionStatusCode.UserDuplicate );
-    }
+    EnsureUserIsUnique( registerDto.Username, registerDto.Email );
 
     string hashedPassword = HashingHelper.HashPassword( registerDto.Password );
 
@@ -94,34 +89,51 @@ public class UserService : IUserService
   }
 
 
-  public bool UserExists( string username, string email )
-  {
-    return _dbContext.Users.Any( user =>
-      user.Username == username
-      && user.Email == email
-    );
-  }
-
-  public User CheckIfUserExists( int id )
+  public User GetUserIfExists( int id )
   {
     User? user = _dbContext.Users.Find( id );
 
     if ( user == null )
     {
-      LoggingHelper.LogFailure( _logger, "User not found", new { Id = id } );
+      _logger.LogError( "User not found" );
 
       throw new ServerException( $"User with ID='{id}' not found", ExceptionStatusCode.UserNotFound );
     }
     return user;
   }
 
-  public void CheckIfUserIsNull( User? user )
+  public void EnsureUserExists( int id )
+  {
+    if ( _dbContext.Users.Find( id ) == null )
+    {
+      _logger.LogError( "User not found" );
+
+      throw new ServerException( $"User with ID='{id}' not found", ExceptionStatusCode.UserNotFound );
+    }
+  }
+
+  public void EnsureUserIsNotNull( User? user )
   {
     if ( user == null )
     {
-      LoggingHelper.LogFailure( _logger, "User not found" );
+      _logger.LogError( "User not found" );
 
       throw new ServerException( $"User not found", ExceptionStatusCode.UserNotFound );
+    }
+  }
+
+  public void EnsureUserIsUnique( string username, string email )
+  {
+    User? user = _dbContext.Users.FirstOrDefault( user =>
+      user.Username == username
+      && user.Email == email
+    );
+
+    if ( user != null )
+    {
+      _logger.LogError( "Username or email already exists" );
+
+      throw new ServerException( "Username or Email already exists", ExceptionStatusCode.UserDuplicate );
     }
   }
 

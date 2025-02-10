@@ -5,7 +5,7 @@
 namespace backend_c_.Migrations
 {
     /// <inheritdoc />
-    public partial class updated_mediaFile : Migration
+    public partial class UpdateForeignKeys : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

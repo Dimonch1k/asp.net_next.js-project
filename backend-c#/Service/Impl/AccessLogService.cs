@@ -13,13 +13,13 @@ namespace backend_c_.Service.Impl;
 public class AccessLogService : IAccessLogService
 {
   private readonly AppDbContext _dbContext;
-  private readonly IUserService _userService;
-  private readonly IFileService _fileService;
-  private readonly ISharedFileService _sharedFileService;
-  private readonly INotificationService _notificationService;
+  private readonly Lazy<IUserService> _userService;
+  private readonly Lazy<IFileService> _fileService;
+  private readonly Lazy<ISharedFileService> _sharedFileService;
+  private readonly Lazy<INotificationService> _notificationService;
   private readonly ILogger<AccessLogService> _logger;
 
-  public AccessLogService( AppDbContext dbContext, IUserService userService, IFileService fileService, ISharedFileService sharedFileService, INotificationService notificationService, Logger<AccessLogService> logger )
+  public AccessLogService( AppDbContext dbContext, Lazy<IUserService> userService, Lazy<IFileService> fileService, Lazy<ISharedFileService> sharedFileService, Lazy<INotificationService> notificationService, ILogger<AccessLogService> logger )
   {
     _dbContext = dbContext;
     _userService = userService;
@@ -29,9 +29,16 @@ public class AccessLogService : IAccessLogService
     _logger = logger;
   }
 
-  public IEnumerable<AccessLogDto> FindAccessByFile( int fileId )
+  public IEnumerable<AccessLogDto> GetAllAccessLogs( )
   {
-    _fileService.CheckIfFileExists( fileId );
+    return _dbContext.AccessLogs
+      .Select( AccessLogToDto )
+      .ToList();
+  }
+
+  public IEnumerable<AccessLogDto> GetAccessLogsByFileId( int fileId )
+  {
+    _fileService.Value.EnsureFileExists( fileId );
 
     return _dbContext.AccessLogs
       .Where( log => log.FileId == fileId )
@@ -39,9 +46,9 @@ public class AccessLogService : IAccessLogService
       .ToList();
   }
 
-  public IEnumerable<AccessLogDto> FindAccessByUser( int userId )
+  public IEnumerable<AccessLogDto> GetAccessLogsByUserId( int userId )
   {
-    _userService.CheckIfUserExists( userId );
+    _userService.Value.EnsureUserExists( userId );
 
     return _dbContext.AccessLogs
       .Where( log => log.UserId == userId )
@@ -49,27 +56,19 @@ public class AccessLogService : IAccessLogService
       .ToList();
   }
 
-  public IEnumerable<AccessLogDto> FindAll( )
-  {
-    return _dbContext.AccessLogs
-      .Select( AccessLogToDto )
-      .ToList();
-  }
 
-  public AccessLogDto FindOne( int id )
+  public AccessLogDto GetAccessLogById( int id )
   {
-    AccessLog? accessLog = CheckIfAccessLogExists( id );
+    AccessLog? accessLog = GetAccessLogIfExists( id );
 
     return AccessLogToDto( accessLog );
   }
 
-  public AccessLogDto Create( CreateAccessLogDto createAccessLogDto )
+  public AccessLogDto CreateAccessLog( CreateAccessLogDto createAccessLogDto )
   {
-    MediaFile? file = _dbContext.Files
-      .Include( f => f.User )
-      .FirstOrDefault( f => f.Id == createAccessLogDto.FileId );
+    MediaFile? file = _fileService.Value.GetFileIfExists( createAccessLogDto.FileId );
 
-    _fileService.CheckIfFileIsNull( file );
+    _fileService.Value.EnsureFileIsNotNull( file );
 
     CheckIfUserIdMatch( file?.UserId, createAccessLogDto.UserId );
 
@@ -79,7 +78,7 @@ public class AccessLogService : IAccessLogService
       && sf.SharedWithId == createAccessLogDto.UserId
     );
 
-    _sharedFileService.CheckIfSharedFileIsNull( sharedFile );
+    _sharedFileService.Value.EnsureSharedFileIsNotNull( sharedFile );
 
     IsAccessAllowed( sharedFile?.Permission, createAccessLogDto.AccessType );
 
@@ -100,9 +99,9 @@ public class AccessLogService : IAccessLogService
     return AccessLogToDto( newAccessLog );
   }
 
-  public AccessLogDto Update( int id, UpdateAccessLogDto updateAccessLogDto )
+  public AccessLogDto UpdateAccessLog( int id, UpdateAccessLogDto updateAccessLogDto )
   {
-    AccessLog? accessLog = CheckIfAccessLogExists( id );
+    AccessLog? accessLog = GetAccessLogIfExists( id );
 
     accessLog.AccessType = (AccessType) Enum.Parse( typeof( AccessType ), updateAccessLogDto.AccessType.ToLower() );
 
@@ -112,9 +111,9 @@ public class AccessLogService : IAccessLogService
     return AccessLogToDto( accessLog );
   }
 
-  public AccessLogDto Remove( int id )
+  public AccessLogDto DeleteAccessLog( int id )
   {
-    AccessLog? accessLog = CheckIfAccessLogExists( id );
+    AccessLog? accessLog = GetAccessLogIfExists( id );
 
     _dbContext.AccessLogs.Remove( accessLog );
     _dbContext.SaveChanges();
@@ -123,13 +122,13 @@ public class AccessLogService : IAccessLogService
   }
 
 
-  public AccessLog CheckIfAccessLogExists( int accessLogId )
+  public AccessLog GetAccessLogIfExists( int accessLogId )
   {
     AccessLog? accessLog = _dbContext.AccessLogs.Find( accessLogId );
 
     if ( accessLog == null )
     {
-      LoggingHelper.LogFailure( _logger, "Access Log not found", new { Id = accessLogId } );
+      _logger.LogInformation( "Access Log not found" );
 
       throw new ServerException( $"Access Log with ID='{accessLogId}' not found.", ExceptionStatusCode.AccessLogNotFound );
     }
@@ -137,23 +136,11 @@ public class AccessLogService : IAccessLogService
     return accessLog;
   }
 
-  private AccessLogDto AccessLogToDto( AccessLog accessLog )
-  {
-    return new AccessLogDto
-    {
-      Id = accessLog.Id,
-      FileId = accessLog.FileId,
-      UserId = accessLog.UserId,
-      AccessType = accessLog.AccessType.ToString(),
-      AccessTime = accessLog.AccessTime
-    };
-  }
-
   private void SendNotification( MediaFile? file, CreateAccessLogDto dto )
   {
     string message = $"Your file '{file?.FileName}' was {dto.AccessType.ToString().ToLower()} by user {dto.UserId}.";
 
-    _notificationService.SendNotification(
+    _notificationService.Value.SendNotification(
       new CreateNotificationDto
       {
         UserId = file.UserId,
@@ -169,7 +156,7 @@ public class AccessLogService : IAccessLogService
     if ( ( permission == AccessType.read && reqAccess != AccessType.read )
       || ( permission == AccessType.write && reqAccess == AccessType.download ) )
     {
-      LoggingHelper.LogFailure( _logger, "You haven't access to this file!" );
+      _logger.LogInformation( "You haven't access to this file!" );
 
       throw new ServerException( "You haven't access to this file!", ExceptionStatusCode.FileNotAccessible );
     }
@@ -179,9 +166,21 @@ public class AccessLogService : IAccessLogService
   {
     if ( fileUserId != accessLogUserId )
     {
-      LoggingHelper.LogFailure( _logger, $"User ID='{fileUserId}' and Access Log User ID='{accessLogUserId}' don't match" );
+      _logger.LogInformation( $"User ID='{fileUserId}' and Access Log User ID='{accessLogUserId}' don't match" );
 
       throw new ServerException( $"User ID='{fileUserId}' and Access Log User ID='{accessLogUserId}' don't match", ExceptionStatusCode.BadRequest );
     }
+  }
+
+  private AccessLogDto AccessLogToDto( AccessLog accessLog )
+  {
+    return new AccessLogDto
+    {
+      Id = accessLog.Id,
+      FileId = accessLog.FileId,
+      UserId = accessLog.UserId,
+      AccessType = accessLog.AccessType.ToString(),
+      AccessTime = accessLog.AccessTime
+    };
   }
 }

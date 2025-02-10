@@ -7,13 +7,15 @@ namespace backend_c_.Utils;
 
 public class PathHelper
 {
-  //private static readonly string BaseDirectory = Environment.GetEnvironmentVariable( "FILE_BASE_DIRECTORY" )
-  //  ?? throw new ServerException( "Base directory is not configured", ExceptionStatusCode.InternalServerError );
-  public static readonly string BaseDirectory = @"C:\Users\dmytro\Desktop\uploads";
+  //private static readonly string PATH_BASE_DIR = Environment.GetEnvironmentVariable( "FILE_BASE_DIRECTORY_LINUX" );
+  private static readonly string? PATH_BASE_DIR = Environment.GetEnvironmentVariable( "PATH_BASE_DIRECTORY_WINDOWS" );
+
+  public static readonly string _baseDirectory = PATH_BASE_DIR;
+  public static readonly string _tempFolder = Path.Combine( PATH_BASE_DIR, "tempUploads" );
 
   public PathHelper( )
   {
-    if ( string.IsNullOrEmpty( BaseDirectory ) || !Directory.Exists( BaseDirectory ) )
+    if ( string.IsNullOrEmpty( _baseDirectory ) || !Directory.Exists( _baseDirectory ) )
     {
       throw new ServerException( "Internal server error.", Enums.ExceptionStatusCode.InternalServerError );
     }
@@ -21,7 +23,7 @@ public class PathHelper
 
   public static string GetVersionPath( int userId, int fileId, string name )
   {
-    string directoryPath = Path.Combine( BaseDirectory, userId.ToString(), "versions", fileId.ToString() );
+    string directoryPath = Path.Combine( _baseDirectory, userId.ToString(), "versions", fileId.ToString() );
 
     EnsureDirectoryExists( directoryPath );
 
@@ -30,7 +32,7 @@ public class PathHelper
 
   public static string GetFilePath( int userId, string name )
   {
-    string directoryPath = Path.Combine( BaseDirectory, userId.ToString() );
+    string directoryPath = Path.Combine( _baseDirectory, userId.ToString() );
 
     EnsureDirectoryExists( directoryPath );
 
@@ -56,7 +58,7 @@ public class PathHelper
   }
 
 
-  private static void EnsureDirectoryExists( string path )
+  public static void EnsureDirectoryExists( string path )
   {
     if ( !Directory.Exists( path ) )
     {

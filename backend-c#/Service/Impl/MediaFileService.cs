@@ -1,29 +1,23 @@
 ﻿using backend_c_.DTO.File;
 using backend_c_.DTO.SharedFile;
-using backend_c_.DTO.User;
 using backend_c_.Entity;
 using backend_c_.Enums;
 using backend_c_.Exceptions;
-using backend_c_.Utilities;
 using backend_c_.Utils;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace backend_c_.Service.Impl;
 
 public class MediaFileService : IFileService
 {
   private readonly AppDbContext _dbContext;
-  private readonly IUserService _userService;
-  private readonly ISharedFileService _sharedFileService;
-  private readonly IVersionService _versionService;
+  private readonly Lazy<IUserService> _userService;
+  private readonly Lazy<ISharedFileService> _sharedFileService;
+  private readonly Lazy<IVersionService> _versionService;
   private readonly IConfiguration _configuration;
   private readonly ILogger<MediaFileService> _logger;
 
-  public MediaFileService( AppDbContext dbContext, IUserService userService, ISharedFileService sharedFileService, IVersionService versionService, IConfiguration configuration, ILogger<MediaFileService> logger )
+  public MediaFileService( AppDbContext dbContext, Lazy<IUserService> userService, Lazy<ISharedFileService> sharedFileService, Lazy<IVersionService> versionService, IConfiguration configuration, ILogger<MediaFileService> logger )
   {
     _dbContext = dbContext;
     _userService = userService;
@@ -35,27 +29,27 @@ public class MediaFileService : IFileService
 
   public IEnumerable<ShareFileDto> GetFilesSharedByMe( int userId )
   {
-    _userService.CheckIfUserExists( userId );
+    _userService.Value.EnsureUserExists( userId );
 
     return _dbContext.SharedFiles
       .Where( sf => sf.OwnerId == userId )
-      .Select( sf => _sharedFileService.SharedFileToDto( sf ) )
+      .Select( sf => _sharedFileService.Value.SharedFileToDto( sf ) )
       .ToList();
   }
 
   public IEnumerable<ShareFileDto> GetFilesSharedToMe( int userId )
   {
-    _userService.CheckIfUserExists( userId );
+    _userService.Value.EnsureUserExists( userId );
 
     return _dbContext.SharedFiles
       .Where( sf => sf.SharedWithId == userId )
-      .Select( sf => SharedFileService.SharedFileToDto( sf ) )
+      .Select( sf => _sharedFileService.Value.SharedFileToDto( sf ) )
       .ToList();
   }
 
   public IEnumerable<FileDto> GetUserFiles( int userId )
   {
-    _userService.CheckIfUserExists( userId );
+    _userService.Value.EnsureUserExists( userId );
 
     return _dbContext.Files
       .Where( file => file.UserId == userId )
@@ -63,47 +57,115 @@ public class MediaFileService : IFileService
       .ToList();
   }
 
-  public FileDto Upload( UploadFileDto data, IFormFile uploadedFile )
+  public async Task<FileDto> UploadFile( UploadFileDto data, IFormFile uploadedFile )
   {
-    _userService.CheckIfUserExists( data.UserId );
+    _userService.Value.EnsureUserExists( data.UserId );
+    EnsureFileIsUnique( uploadedFile.FileName, data.UserId );
+    PathHelper.EnsureDirectoryExists( PathHelper._tempFolder );
 
-    MediaFile? file = _dbContext.Files.FirstOrDefault(
-      f => f.FileName.Equals( uploadedFile.FileName )
-        && f.UserId.Equals( data.UserId )
-    );
+    string tempFilePath = Path.Combine( PathHelper._tempFolder, Guid.NewGuid() + "_" + uploadedFile.FileName );
 
-    if ( file != null )
+    using ( FileStream stream = new FileStream( tempFilePath, FileMode.Create ) )
     {
-      throw new ServerException( $"File with Name {file.FileName} already exists", ExceptionStatusCode.FileDuplicate );
+      await uploadedFile.CopyToAsync( stream );
     }
 
-    string filePath = SaveFile( data, uploadedFile.FileName, uploadedFile.ContentType );
-
-    MediaFile newFile = new MediaFile
+    FileScanRequest scanRequest = new FileScanRequest
     {
-      UserId = data.UserId,
+      FileId = Guid.NewGuid(),
+      FilePath = tempFilePath,
       FileName = uploadedFile.FileName,
-      FilePath = filePath,
-      FileSize = data.FileData.Length,
-      FileType = uploadedFile.ContentType,
-      CreatedAt = DateTime.UtcNow,
-      UpdatedAt = DateTime.UtcNow
+      Status = RequestStatus.pending.ToString(),
+      CreatedAt = DateTime.UtcNow
     };
 
-    _dbContext.Files.Add( newFile );
-    _dbContext.SaveChanges();
+    _dbContext.FileScanRequests.Add( scanRequest );
+    await _dbContext.SaveChangesAsync();
 
-    return FileToDto( newFile );
+    FileScanRequest? updatedRequest = await WaitForScanResult( scanRequest.FileId, TimeSpan.FromSeconds( 60 ) );
+
+    if ( updatedRequest == null )
+    {
+      _logger.LogError( "Scan request not found" );
+
+      throw new ServerException( "Scan request not found", ExceptionStatusCode.ScanResultNotFound );
+    }
+
+    return await ProcessScanResult( updatedRequest, data, uploadedFile.FileName, uploadedFile.ContentType, tempFilePath );
   }
 
-  public FileDto Update( int id, UpdateFileDto data )
+  private async Task<FileScanRequest?> WaitForScanResult( Guid fileId, TimeSpan timeout )
   {
-    MediaFile? file = CheckIfFileExists( id );
+    DateTime startTime = DateTime.UtcNow;
+
+    while ( DateTime.UtcNow - startTime < timeout )
+    {
+      await Task.Delay( 1000 );
+      FileScanRequest? fileScanRequest = await _dbContext.FileScanRequests
+        .AsNoTracking()
+        .FirstOrDefaultAsync( fsr =>
+          fsr.FileId.Equals( fileId ) &&
+          ( fsr.Status.ToLower() == RequestStatus.clean.ToString()
+          || fsr.Status.ToLower() == RequestStatus.infected.ToString() )
+        );
+
+      if ( fileScanRequest != null )
+      {
+        return fileScanRequest;
+      }
+    }
+    return null;
+  }
+
+  private async Task<FileDto> ProcessScanResult( FileScanRequest request, UploadFileDto data, string fileName, string contentType, string tempFilePath )
+  {
+    if ( request.Status.ToLower() == RequestStatus.clean.ToString() )
+    {
+      string filePath = SaveFile( data, fileName, contentType );
+
+      MediaFile newFile = new MediaFile
+      {
+        UserId = data.UserId,
+        FileName = fileName,
+        FilePath = filePath,
+        FileSize = data.FileData.Length,
+        FileType = contentType,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+      };
+
+      _dbContext.Files.Add( newFile );
+      await _dbContext.SaveChangesAsync();
+
+      return FileToDto( newFile );
+    }
+
+    if ( request.Status.ToLower() == RequestStatus.infected.ToString() )
+    {
+      if ( System.IO.File.Exists( tempFilePath ) )
+      {
+        System.IO.File.Delete( tempFilePath );
+      }
+
+      _logger.LogError( "File contains a virus and cannot be uploaded." );
+
+      throw new ServerException( "File contains a virus and cannot be uploaded.", ExceptionStatusCode.FileInfected );
+    }
+
+    _logger.LogError( "Virus scan timeout. Please try again later." );
+
+    throw new ServerException( "Virus scan timeout. Please try again later.", ExceptionStatusCode.ScanTimeout );
+  }
+
+
+  public FileDto UpdateFile( int id, UpdateFileDto data )
+  {
+    MediaFile? file = GetFileIfExists( id );
 
     string oldFilePath = file.FilePath;
     string newFilePath = PathHelper.UpdatePath( file.FilePath, data.FileName );
 
-    _versionService.CheckByPathIfFileExists( oldFilePath );
+    _versionService.Value.EnsureFileExistsAtPath( oldFilePath );
 
     File.Move( oldFilePath, newFilePath );
 
@@ -117,9 +179,9 @@ public class MediaFileService : IFileService
     return FileToDto( file );
   }
 
-  public FileDto Remove( int id )
+  public FileDto DeleteFile( int id )
   {
-    MediaFile? file = CheckIfFileExists( id );
+    MediaFile? file = GetFileIfExists( id );
 
     file.DeletedAt = DateTime.UtcNow;
 
@@ -130,41 +192,18 @@ public class MediaFileService : IFileService
   }
 
 
-  public MediaFile CheckIfFileExists( int fileId )
-  {
-    MediaFile? file = _dbContext.Files.Find( fileId );
-
-    if ( file == null )
-    {
-      LoggingHelper.LogFailure( _logger, "File not found", new { Id = fileId } );
-
-      throw new ServerException( $"File with ID='{fileId}' not found", ExceptionStatusCode.FileNotFound );
-    }
-    return file;
-  }
-
-  public void CheckIfFileIsNull( MediaFile? file )
-  {
-    if ( file == null )
-    {
-      LoggingHelper.LogFailure( _logger, "File not found" );
-
-      throw new ServerException( $"File not found", ExceptionStatusCode.FileNotFound );
-    }
-  }
-
   private string SaveFile( UploadFileDto data, string fileName, string fileType )
   {
     if ( data == null || data.FileData == null || string.IsNullOrEmpty( fileName ) )
     {
-      LoggingHelper.LogFailure( _logger, "Invalid file upload data" );
+      _logger.LogError( "Invalid file upload data" );
 
       throw new ServerException( "Invalid file upload data", ExceptionStatusCode.BadRequest );
     }
 
     if ( !ValidationHelpers.BeAValidFileType( fileType ) )
     {
-      LoggingHelper.LogFailure( _logger, "Invalid file type" );
+      _logger.LogError( "Invalid file type" );
 
       throw new ServerException( "Invalid file type", ExceptionStatusCode.UnsupportedMediaType );
     }
@@ -177,18 +216,66 @@ public class MediaFileService : IFileService
     }
     catch ( IOException )
     {
-      LoggingHelper.LogFailure( _logger, "Failed to save file due to storage issues." );
+      _logger.LogError( "Failed to save file due to storage issues." );
 
       throw new ServerException( "Failed to save file due to storage issues.", ExceptionStatusCode.InsufficientStorage );
     }
     catch ( UnauthorizedAccessException )
     {
-      LoggingHelper.LogFailure( _logger, "Insufficient permissions to save file." );
+      _logger.LogError( "Insufficient permissions to save file." );
 
       throw new ServerException( "Insufficient permissions to save file.", ExceptionStatusCode.Forbidden );
     }
 
     return filePath;
+  }
+
+  public MediaFile GetFileIfExists( int fileId )
+  {
+    MediaFile? file = _dbContext.Files.Find( fileId );
+
+    if ( file == null )
+    {
+      _logger.LogError( "File not found" );
+
+      throw new ServerException( $"File with ID='{fileId}' not found", ExceptionStatusCode.FileNotFound );
+    }
+    return file;
+  }
+
+  public void EnsureFileExists( int fileId )
+  {
+    if ( _dbContext.Files.Find( fileId ) == null )
+    {
+      _logger.LogError( "File not found" );
+
+      throw new ServerException( $"File with ID='{fileId}' not found", ExceptionStatusCode.FileNotFound );
+    }
+  }
+
+  public void EnsureFileIsNotNull( MediaFile? file )
+  {
+    if ( file == null )
+    {
+      _logger.LogError( "File not found" );
+
+      throw new ServerException( $"File not found", ExceptionStatusCode.FileNotFound );
+    }
+  }
+
+  private void EnsureFileIsUnique( string fileName, int userId )
+  {
+    MediaFile? file = _dbContext.Files.FirstOrDefault(
+     f => f.FileName.Equals( fileName )
+       && f.UserId.Equals( userId )
+   );
+
+    if ( file != null )
+    {
+      _logger.LogError( $"File with Name {file.FileName} already exists" );
+
+      throw new ServerException( $"File with Name {file.FileName} already exists", ExceptionStatusCode.FileDuplicate );
+    }
   }
 
   private FileDto FileToDto( MediaFile file )

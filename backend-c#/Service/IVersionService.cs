@@ -1,16 +1,18 @@
 ﻿using backend_c_.DTO.Version;
+using backend_c_.Entity;
 
 namespace backend_c_.Service;
 
 public interface IVersionService
 {
-  FileVersionDto Create( CreateFileVersionDto data );
-  FileVersionDto RestoreVersion( int versionId );
-  IEnumerable<FileVersionDto> FindAll( );
-  FileVersionDto FindOne( int id );
-  FileVersionDto Update( int id, UpdateFileVersionDto data );
-  FileVersionDto Remove( int id );
-  IEnumerable<FileVersionDto> FindByFileId( int fileId );
+  IEnumerable<FileVersionDto> GetAllVersions( );
+  IEnumerable<FileVersionDto> GetVersionsByFileId( int fileId );
+  FileVersionDto GetVersionById( int id );
+  FileVersionDto CreateVersion( CreateFileVersionDto data, MediaFile file );
+  FileVersionDto RestoreFileVersion( int versionId, MediaFile file, FileVersion fileVersion );
+  FileVersionDto UpdateVersion( int id, UpdateFileVersionDto data );
+  FileVersionDto DeleteVersion( int id );
 
-  void CheckByPathIfFileExists( string path );
+  FileVersion GetFileVersionIfExists( int fileVersionId );
+  void EnsureFileExistsAtPath( string path );
 }

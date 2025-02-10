@@ -3,5 +3,5 @@
 public class UploadFileDto
 {
   public int UserId { get; set; }
-  public byte[] FileData { get; set; }
+  public byte[] FileData { get; set; } = new byte[0];
 }

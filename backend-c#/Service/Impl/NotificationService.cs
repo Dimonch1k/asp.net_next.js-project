@@ -6,20 +6,27 @@ namespace backend_c_.Service.Impl;
 public class NotificationService : INotificationService
 {
   private readonly AppDbContext _dbContext;
+  private readonly Lazy<IUserService> _userService;
 
-  public NotificationService( AppDbContext dbContext )
+  public NotificationService( AppDbContext dbContext, Lazy<IUserService> userService )
   {
     _dbContext = dbContext;
+    _userService = userService;
+  }
+  public IEnumerable<NotificationDto> GetUserNotifications( int userId )
+  {
+    User? user = _userService.Value.GetUserIfExists( userId );
+
+    return _dbContext.Notifications
+      .Where( n => n.UserId == userId )
+      .OrderByDescending( n => n.CreatedAt )
+      .Select( n => NotificationToDto( n ) )
+      .ToList();
   }
 
   public NotificationDto SendNotification( CreateNotificationDto notificationDto )
   {
-    User? user = _dbContext.Users.FirstOrDefault( u => u.Id == notificationDto.UserId );
-
-    if ( user == null )
-    {
-      throw new Exception( $"User with ID {notificationDto.UserId} not found" );
-    }
+    User? user = _userService.Value.GetUserIfExists( notificationDto.UserId );
 
     Notification notification = new Notification
     {
@@ -34,21 +41,6 @@ public class NotificationService : INotificationService
     return NotificationToDto( notification );
   }
 
-  public IEnumerable<NotificationDto> GetUserNotifications( int userId )
-  {
-    User? user = _dbContext.Users.FirstOrDefault( u => u.Id == userId );
-
-    if ( user == null )
-    {
-      throw new Exception( $"User with ID {userId} not found" );
-    }
-
-    return _dbContext.Notifications
-      .Where( n => n.UserId == userId )
-      .OrderByDescending( n => n.CreatedAt )
-      .Select( n => NotificationToDto( n ) )
-      .ToList();
-  }
 
   private NotificationDto NotificationToDto( Notification notification )
   {

@@ -2,10 +2,10 @@
 
 #nullable disable
 
-namespace VirusTotalMicroService.Migrations
+namespace backend_c_.Migrations
 {
     /// <inheritdoc />
-    public partial class UpdateFileScanRequestTableStatusField2 : Migration
+    public partial class UpdateFileScanRequest : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

@@ -5,13 +5,14 @@ namespace backend_c_.Service;
 
 public interface IUserService
 {
-  List<UserDto> FindAll( );
-  UserDto FindOne( int id );
-  UserDto Update( int id, UpdateUserDto data );
-  UserDto Remove( int id );
-  bool UserExists( string username, string email );
-  User Register( RegisterDto registerDto );
+  List<UserDto> GetAllUsers( );
+  UserDto GetUserById( int id );
+  UserDto UpdateUser( int id, UpdateUserDto data );
+  UserDto DeleteUser( int id );
+  User RegisterUser( RegisterDto registerDto );
 
-  public User CheckIfUserExists( int id );
-  void CheckIfUserIsNull( User? user );
+  User GetUserIfExists( int id );
+  void EnsureUserExists( int id );
+  void EnsureUserIsNotNull( User? user );
+  void EnsureUserIsUnique( string username, string email );
 }

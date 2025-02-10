@@ -4,11 +4,11 @@ namespace backend_c_.Service;
 
 public interface IAccessLogService
 {
-  IEnumerable<AccessLogDto> FindAll( );
-  AccessLogDto FindOne( int id );
-  AccessLogDto Create( CreateAccessLogDto createAccessLogDto );
-  AccessLogDto Update( int id, UpdateAccessLogDto updateAccessLogDto );
-  AccessLogDto Remove( int id );
-  IEnumerable<AccessLogDto> FindAccessByFile( int fileId );
-  IEnumerable<AccessLogDto> FindAccessByUser( int userId );
+  IEnumerable<AccessLogDto> GetAllAccessLogs( );
+  IEnumerable<AccessLogDto> GetAccessLogsByFileId( int fileId );
+  IEnumerable<AccessLogDto> GetAccessLogsByUserId( int userId );
+  AccessLogDto GetAccessLogById( int id );
+  AccessLogDto CreateAccessLog( CreateAccessLogDto createAccessLogDto );
+  AccessLogDto UpdateAccessLog( int id, UpdateAccessLogDto updateAccessLogDto );
+  AccessLogDto DeleteAccessLog( int id );
 }

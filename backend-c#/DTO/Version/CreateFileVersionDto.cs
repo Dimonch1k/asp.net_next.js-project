@@ -3,5 +3,5 @@
 public class CreateFileVersionDto
 {
   public int FileId { get; set; }
-  public string VersionName { get; set; }
+  public required string VersionName { get; set; }
 }

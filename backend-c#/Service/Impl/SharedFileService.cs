@@ -14,22 +14,18 @@ namespace backend_c_.Service.Impl;
 public class SharedFileService : ISharedFileService
 {
   private readonly AppDbContext _dbContext;
-  private readonly IFileService _fileService;
   private readonly IConfiguration _configuration;
   private readonly ILogger<SharedFileService> _logger;
 
-  public SharedFileService( AppDbContext dbContext, IFileService fileService, IConfiguration configuration, ILogger<SharedFileService> logger )
+  public SharedFileService( AppDbContext dbContext, IConfiguration configuration, ILogger<SharedFileService> logger )
   {
     _dbContext = dbContext;
-    _fileService = fileService;
     _configuration = configuration;
     _logger = logger;
   }
 
-  public ShareFileDto Share( ShareFileDto data )
+  public ShareFileDto ShareFile( ShareFileDto data )
   {
-    MediaFile? file = _fileService.CheckIfFileExists( data.FileId );
-
     SharedFile sharedFile = new SharedFile
     {
       Id = data.Id,
@@ -45,9 +41,9 @@ public class SharedFileService : ISharedFileService
     return SharedFileToDto( sharedFile );
   }
 
-  public ShareFileDto Remove( int id )
+  public ShareFileDto DeleteSharedFile( int id )
   {
-    SharedFile? sharedFile = CheckIfSharedFileExists( id );
+    SharedFile? sharedFile = GetSharedFileIfExists( id );
 
     _dbContext.SharedFiles.Remove( sharedFile );
     _dbContext.SaveChanges();
@@ -56,13 +52,13 @@ public class SharedFileService : ISharedFileService
   }
 
 
-  public SharedFile CheckIfSharedFileExists( int sharedFileId )
+  public SharedFile GetSharedFileIfExists( int sharedFileId )
   {
     SharedFile? sharedFile = _dbContext.SharedFiles.Find( sharedFileId );
 
     if ( sharedFile == null )
     {
-      LoggingHelper.LogFailure( _logger, "Shared file not found", new { Id = sharedFileId } );
+      _logger.LogError( "Shared file not found" );
 
       throw new ServerException( $"Shared file with ID='{sharedFileId}' not found", ExceptionStatusCode.SharedFileNotFound );
     }
@@ -70,11 +66,11 @@ public class SharedFileService : ISharedFileService
     return sharedFile;
   }
 
-  public void CheckIfSharedFileIsNull( SharedFile? sharedFile )
+  public void EnsureSharedFileIsNotNull( SharedFile? sharedFile )
   {
     if ( sharedFile == null )
     {
-      LoggingHelper.LogFailure( _logger, "Shared file not found" );
+      _logger.LogError( "Shared file not found" );
 
       throw new ServerException( $"Shared file not found", ExceptionStatusCode.SharedFileNotFound );
     }

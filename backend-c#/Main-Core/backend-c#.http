@@ -1,6 +1,0 @@
-@backend_c__HostAddress = http://localhost:5279
-
-GET {{backend_c__HostAddress}}/
-Accept: application/json
-
-###

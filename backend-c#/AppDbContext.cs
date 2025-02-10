@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
   public DbSet<AccessLog> AccessLogs { get; set; }
   public DbSet<FileVersion> FileVersions { get; set; }
   public DbSet<Notification> Notifications { get; set; }
+  public DbSet<FileScanRequest> FileScanRequests { get; set; }
 
   protected override void OnModelCreating( ModelBuilder modelBuilder )
   {

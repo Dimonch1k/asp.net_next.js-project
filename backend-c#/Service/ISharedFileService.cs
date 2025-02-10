@@ -5,9 +5,9 @@ namespace backend_c_.Service;
 
 public interface ISharedFileService
 {
-  ShareFileDto Share( ShareFileDto data );
-  ShareFileDto Remove( int id );
+  ShareFileDto ShareFile( ShareFileDto data );
+  ShareFileDto DeleteSharedFile( int id );
 
-  void CheckIfSharedFileIsNull( SharedFile? sharedFile );
+  void EnsureSharedFileIsNotNull( SharedFile? sharedFile );
   ShareFileDto SharedFileToDto( SharedFile sharedFile );
 }
