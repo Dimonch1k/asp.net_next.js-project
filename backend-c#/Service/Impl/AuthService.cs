@@ -8,6 +8,7 @@ using backend_c_.Enums;
 using backend_c_.Exceptions;
 using backend_c_.Utilities;
 using backend_c_.Utils;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace backend_c_.Service.Impl;
@@ -50,41 +51,30 @@ public class AuthService : IAuthService
     }
     catch ( SecurityTokenException )
     {
-      _logger.LogInformation( "Invalid token" );
+      _logger.LogError( "Invalid token" );
 
       throw new ServerException( "Invalid token", ExceptionStatusCode.InvalidToken );
     }
     catch ( Exception ex )
     {
-      _logger.LogInformation( $"Authorization failed: {ex.Message}" );
+      _logger.LogError( $"Authorization failed: {ex.Message}" );
 
       throw new ServerException( "Authorization failed", ExceptionStatusCode.InternalServerError );
     }
   }
 
-  public string? Login( LoginDto loginDto )
+  public async Task<string?> Login( LoginDto loginDto )
   {
-    User? user = _dbContext.Users.FirstOrDefault( u => u.Username == loginDto.Username );
-
-    _userService.Value.EnsureUserIsNotNull( user );
+    User? user = await _userService.Value.GetUserByUsernameIfExists( loginDto.Username );
 
     if ( !HashingHelper.VerifyPassword( loginDto.Password, user.PasswordHash ) )
     {
-      _logger.LogInformation( "Invalid username or password" );
+      _logger.LogError( "Invalid password" );
 
-      throw new ServerException( "Invalid username or password", ExceptionStatusCode.BadRequest );
+      throw new ServerException( "Invalid password", ExceptionStatusCode.BadRequest );
     }
 
     return GenerateJwtToken( user );
-  }
-
-  private ClaimsIdentity GenerateClaims( User user )
-  {
-    ClaimsIdentity claimsIdentity = new ClaimsIdentity();
-
-    claimsIdentity.AddClaim( new Claim( "id", user.Id.ToString() ) );
-
-    return claimsIdentity;
   }
 
   private string GenerateJwtToken( User user )
@@ -116,7 +106,7 @@ public class AuthService : IAuthService
   {
     if ( string.IsNullOrEmpty( secret ) )
     {
-      _logger.LogInformation( "JWT secret is missing" );
+      _logger.LogError( "JWT secret is missing" );
 
       throw new ServerException( "JWT secret is missing", ExceptionStatusCode.MissingJwtSecret );
     }

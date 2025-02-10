@@ -6,56 +6,55 @@ using backend_c_.Enums;
 using backend_c_.Exceptions;
 using backend_c_.Utilities;
 using backend_c_.Utils;
+using Microsoft.EntityFrameworkCore;
 
 namespace backend_c_.Service.Impl;
 
 public class UserService : IUserService
 {
   private AppDbContext _dbContext;
+  private readonly TimeZoneHelper _timeZoneHelper;
   private readonly ILogger<UserService> _logger;
 
-  public UserService( AppDbContext dbContext, ILogger<UserService> logger )
+  public UserService( AppDbContext dbContext, TimeZoneHelper timeZoneHelper, ILogger<UserService> logger )
   {
     _dbContext = dbContext;
+    _timeZoneHelper = timeZoneHelper;
     _logger = logger;
   }
 
   public List<UserDto> GetAllUsers( )
   {
     return _dbContext.Users
-      .Select( user => UserToDto( user ) )
+      .Select( UserToDto )
       .ToList();
   }
 
-  public UserDto GetUserById( int id )
+  public async Task<UserDto> GetUserById( int id )
   {
-    User user = GetUserIfExists( id );
+    User user = await GetUserIfExists( id );
 
     return UserToDto( user );
   }
 
-  public UserDto UpdateUser( int id, UpdateUserDto data )
+  public async Task<UserDto> UpdateUser( int id, UpdateUserDto data )
   {
-    User user = GetUserIfExists( id );
+    User user = await GetUserIfExists( id );
 
     user.Username = data.Username;
     user.Email = data.Email;
     user.FullName = data.FullName;
+    user.UpdatedAt = DateTime.UtcNow;
 
+    _dbContext.Users.Update( user );
     _dbContext.SaveChanges();
 
-    return new UserDto
-    {
-      Id = user.Id,
-      Username = user.Username,
-      Email = user.Email,
-      FullName = data.FullName
-    };
+    return UserToDto( user );
   }
 
-  public UserDto DeleteUser( int id )
+  public async Task<UserDto> DeleteUser( int id )
   {
-    User user = GetUserIfExists( id );
+    User user = await GetUserIfExists( id );
 
     _dbContext.Users.Remove( user );
     _dbContext.SaveChanges();
@@ -63,13 +62,11 @@ public class UserService : IUserService
     return UserToDto( user );
   }
 
-  public User RegisterUser( RegisterDto registerDto )
+  public async Task<User> RegisterUser( RegisterDto registerDto )
   {
-    EnsureUserIsUnique( registerDto.Username, registerDto.Email );
+    await EnsureUserIsUnique( registerDto.Username, registerDto.Email );
 
     string hashedPassword = HashingHelper.HashPassword( registerDto.Password );
-
-    DateTime utcNow = DateTime.UtcNow;
 
     User newUser = new User
     {
@@ -77,21 +74,21 @@ public class UserService : IUserService
       PasswordHash = hashedPassword,
       Email = registerDto.Email,
       FullName = registerDto.FullName,
-      CreatedAt = utcNow,
-      UpdatedAt = utcNow,
+      CreatedAt = DateTime.UtcNow,
+      UpdatedAt = DateTime.UtcNow,
       TimeZoneId = registerDto.TimeZoneId
     };
 
     _dbContext.Users.Add( newUser );
-    _dbContext.SaveChanges();
+    await _dbContext.SaveChangesAsync();
 
     return newUser;
   }
 
 
-  public User GetUserIfExists( int id )
+  public async Task<User> GetUserIfExists( int? id )
   {
-    User? user = _dbContext.Users.Find( id );
+    User? user = await _dbContext.Users.FindAsync( id );
 
     if ( user == null )
     {
@@ -99,12 +96,27 @@ public class UserService : IUserService
 
       throw new ServerException( $"User with ID='{id}' not found", ExceptionStatusCode.UserNotFound );
     }
+
     return user;
   }
 
-  public void EnsureUserExists( int id )
+  public async Task<User> GetUserByUsernameIfExists( string username )
   {
-    if ( _dbContext.Users.Find( id ) == null )
+    User? user = await _dbContext.Users.FirstOrDefaultAsync( u => u.Username == username );
+
+    if ( user == null )
+    {
+      _logger.LogError( "User not found" );
+
+      throw new ServerException( $"User with Username='{username}' not found", ExceptionStatusCode.UserNotFound );
+    }
+
+    return user;
+  }
+
+  public async Task EnsureUserExists( int? id )
+  {
+    if ( await _dbContext.Users.FindAsync( id ) == null )
     {
       _logger.LogError( "User not found" );
 
@@ -112,26 +124,16 @@ public class UserService : IUserService
     }
   }
 
-  public void EnsureUserIsNotNull( User? user )
+  public async Task EnsureUserIsUnique( string username, string email )
   {
-    if ( user == null )
-    {
-      _logger.LogError( "User not found" );
-
-      throw new ServerException( $"User not found", ExceptionStatusCode.UserNotFound );
-    }
-  }
-
-  public void EnsureUserIsUnique( string username, string email )
-  {
-    User? user = _dbContext.Users.FirstOrDefault( user =>
+    User? user = await _dbContext.Users.FirstOrDefaultAsync( user =>
       user.Username == username
-      && user.Email == email
+      || user.Email == email
     );
 
     if ( user != null )
     {
-      _logger.LogError( "Username or email already exists" );
+      _logger.LogError( "Username or Email already exists" );
 
       throw new ServerException( "Username or Email already exists", ExceptionStatusCode.UserDuplicate );
     }
@@ -144,6 +146,16 @@ public class UserService : IUserService
       Id = user.Id,
       Username = user.Username,
       Email = user.Email,
+      FullName = user.FullName,
+      CreatedAt = user.CreatedAt,
+      UpdatedAt = user.UpdatedAt,
+      CreatedAtFormatted = _timeZoneHelper.GetHumanReadableTime( user.CreatedAt, user.TimeZoneId ),
+      UpdatedAtFormatted = _timeZoneHelper.GetHumanReadableTime( user.UpdatedAt, user.TimeZoneId )
     };
+  }
+
+  public string GetUserTimeZone( int? id )
+  {
+    return _dbContext.Users.Find( id ).TimeZoneId;
   }
 }

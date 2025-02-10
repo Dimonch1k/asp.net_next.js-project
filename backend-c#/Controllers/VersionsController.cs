@@ -26,7 +26,7 @@ public class VersionsController : ControllerBase
   [HttpGet]
   public IActionResult GetAllVersions( )
   {
-    _logger.LogInformation( "Received request to find all file versions" );
+    _logger.LogInformation( "Received request to get all file versions" );
 
     IEnumerable<FileVersionDto> fileVersionsDto = _versionService.GetAllVersions();
 
@@ -35,12 +35,12 @@ public class VersionsController : ControllerBase
     return Ok( fileVersionsDto );
   }
 
-  [HttpGet( "getByFileId/{fileId}" )]
-  public IActionResult GetVersionsByFileId( int fileId )
+  [HttpGet( "file-id/{fileId}" )]
+  public async Task<IActionResult> GetVersionsByFileId( int fileId )
   {
-    _logger.LogInformation( $"Received request to find file versions with file ID: {fileId}" );
+    _logger.LogInformation( $"Received request to get file versions with file ID: {fileId}" );
 
-    _fileService.EnsureFileExists( fileId );
+    await _fileService.EnsureFileExists( fileId );
 
     IEnumerable<FileVersionDto> fileVersionsDto = _versionService.GetVersionsByFileId( fileId );
 
@@ -50,11 +50,11 @@ public class VersionsController : ControllerBase
   }
 
   [HttpGet( "{id}" )]
-  public IActionResult GetVersionById( int id )
+  public async Task<IActionResult> GetVersionById( int id )
   {
-    _logger.LogInformation( $"Received request to find file version by ID: {id}" );
+    _logger.LogInformation( $"Received request to get file version by ID: {id}" );
 
-    FileVersionDto fileVersionDto = _versionService.GetVersionById( id );
+    FileVersionDto fileVersionDto = await _versionService.GetVersionById( id );
 
     _logger.LogInformation( "Returning file version" );
 
@@ -62,13 +62,13 @@ public class VersionsController : ControllerBase
   }
 
   [HttpPost]
-  public IActionResult CreateVersion( [FromBody] CreateFileVersionDto data )
+  public async Task<IActionResult> CreateVersion( [FromBody] CreateFileVersionDto data )
   {
     _logger.LogInformation( "Received request to create file version" );
 
-    MediaFile? file = _fileService.GetFileIfExists( data.FileId );
+    MediaFile? file = await _fileService.GetFileIfExists( data.FileId );
 
-    FileVersionDto fileVersionDto = _versionService.CreateVersion( data, file );
+    FileVersionDto fileVersionDto = await _versionService.CreateVersion( data, file );
 
     _logger.LogInformation( "File version created successfully" );
 
@@ -76,15 +76,13 @@ public class VersionsController : ControllerBase
   }
 
   [HttpPost( "{versionId}/restore" )]
-  public IActionResult RestoreFileVersion( int versionId )
+  public async Task<IActionResult> RestoreFileVersion( int versionId )
   {
     _logger.LogInformation( $"Received request to restore file version with ID: {versionId}" );
 
-    FileVersion? fileVersion = _versionService.GetFileVersionIfExists( versionId );
+    FileVersion? fileVersion = await _versionService.GetFileVersionIfExists( versionId );
 
-    MediaFile? file = _fileService.GetFileIfExists( fileVersion.FileId );
-
-    _fileService.EnsureFileIsNotNull( file );
+    MediaFile? file = await _fileService.GetFileIfExists( fileVersion.FileId );
 
     FileVersionDto restoredVersionDto = _versionService.RestoreFileVersion( versionId, file, fileVersion );
 
@@ -94,11 +92,11 @@ public class VersionsController : ControllerBase
   }
 
   [HttpPatch( "{id}" )]
-  public IActionResult UpdateVersion( int id, [FromBody] UpdateFileVersionDto data )
+  public async Task<IActionResult> UpdateVersion( int id, [FromBody] UpdateFileVersionDto data )
   {
     _logger.LogInformation( $"Received request to update file version with ID: {id}" );
 
-    FileVersionDto fileVersionDto = _versionService.UpdateVersion( id, data );
+    FileVersionDto fileVersionDto = await _versionService.UpdateVersion( id, data );
 
     _logger.LogInformation( "File version updated successfully" );
 
@@ -106,15 +104,14 @@ public class VersionsController : ControllerBase
   }
 
   [HttpDelete( "{id}" )]
-  public IActionResult DeleteVersion( int id )
+  public async Task<IActionResult> DeleteVersion( int id )
   {
     _logger.LogInformation( $"Received request to delete file version with ID: {id}" );
 
-    FileVersionDto deletedFileVersionDto = _versionService.DeleteVersion( id );
+    FileVersionDto deletedFileVersionDto = await _versionService.DeleteVersion( id );
 
     _logger.LogInformation( "File version deleted successfully" );
 
     return Ok( deletedFileVersionDto );
   }
-
 }

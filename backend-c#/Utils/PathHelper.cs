@@ -57,12 +57,19 @@ public class PathHelper
     return Path.Combine( directory, $"{Path.GetFileNameWithoutExtension( newFileName )}{extension}" );
   }
 
-
   public static void EnsureDirectoryExists( string path )
   {
     if ( !Directory.Exists( path ) )
     {
       Directory.CreateDirectory( path );
+    }
+  }
+
+  public static void EnsureFileExistsAtPath( string path )
+  {
+    if ( !File.Exists( path ) )
+    {
+      throw new ServerException( $"File not found at {path}", ExceptionStatusCode.DirectoryNotFound );
     }
   }
 }

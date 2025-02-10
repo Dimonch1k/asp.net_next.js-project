@@ -27,7 +27,7 @@ public class UsersController : ControllerBase
   [HttpGet]
   public IActionResult GetAllUsers( )
   {
-    _logger.LogInformation( "Received request to find all users" );
+    _logger.LogInformation( "Received request to get all users" );
 
     List<UserDto> usersDto = _userService.GetAllUsers();
 
@@ -37,11 +37,11 @@ public class UsersController : ControllerBase
   }
 
   [HttpGet( "{id}" )]
-  public IActionResult GetUserById( int id )
+  public async Task<IActionResult> GetUserById( int id )
   {
-    _logger.LogInformation( $"Received request to find user with ID: {id}" );
+    _logger.LogInformation( $"Received request to get user with ID: {id}" );
 
-    UserDto userDto = _userService.GetUserById( id );
+    UserDto userDto = await _userService.GetUserById( id );
 
     _logger.LogInformation( "Returning user" );
 
@@ -49,11 +49,11 @@ public class UsersController : ControllerBase
   }
 
   [HttpPatch( "{id}" )]
-  public IActionResult UpdateUser( int id, [FromBody] UpdateUserDto data )
+  public async Task<IActionResult> UpdateUser( int id, [FromBody] UpdateUserDto data )
   {
     _logger.LogInformation( $"Received request to update user with ID: {id}" );
 
-    UserDto updatedUserDto = _userService.UpdateUser( id, data );
+    UserDto updatedUserDto = await _userService.UpdateUser( id, data );
 
     _logger.LogInformation( "User updated successfully" );
 
@@ -61,11 +61,11 @@ public class UsersController : ControllerBase
   }
 
   [HttpDelete( "{id}" )]
-  public IActionResult DeleteUser( int id )
+  public async Task<IActionResult> DeleteUser( int id )
   {
     _logger.LogInformation( $"Received request to delete user with ID: {id}" );
 
-    UserDto deletedUserDto = _userService.DeleteUser( id );
+    UserDto deletedUserDto = await _userService.DeleteUser( id );
 
     _logger.LogInformation( "User deleted successfully" );
 
@@ -74,11 +74,11 @@ public class UsersController : ControllerBase
 
   [AllowAnonymous]
   [HttpPost( "register" )]
-  public IActionResult RegisterUser( [FromBody] RegisterDto registerDto )
+  public async Task<IActionResult> RegisterUser( [FromBody] RegisterDto registerDto )
   {
     _logger.LogInformation( "Received request to register a new user" );
 
-    User newUser = _userService.RegisterUser( registerDto );
+    User newUser = await _userService.RegisterUser( registerDto );
 
     _logger.LogInformation( "Register successful" );
 
@@ -87,11 +87,11 @@ public class UsersController : ControllerBase
 
   [AllowAnonymous]
   [HttpPost( "login" )]
-  public IActionResult Login( [FromBody] LoginDto loginDto )
+  public async Task<IActionResult> Login( [FromBody] LoginDto loginDto )
   {
     _logger.LogInformation( "Received request to login" );
 
-    string? token = _authService.Login( loginDto );
+    string? token = await _authService.Login( loginDto );
 
     _logger.LogInformation( "User logged in successfully" );
 

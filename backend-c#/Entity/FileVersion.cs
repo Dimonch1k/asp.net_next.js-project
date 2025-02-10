@@ -11,5 +11,5 @@ public class FileVersion
   public DateTime CreatedAt { get; set; }
 
   [ForeignKey( "FileId" )]
-  public MediaFile File { get; set; }
+  public MediaFile? File { get; set; }
 }

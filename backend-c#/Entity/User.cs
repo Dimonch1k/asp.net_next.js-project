@@ -15,4 +15,5 @@ public class User
   public List<AccessLog> AccessLogs { get; set; } = new();
   public List<SharedFile> OwnedFiles { get; set; } = new();
   public List<SharedFile> SharedWithFiles { get; set; } = new();
+  public List<Notification> notifications { get; set; } = new();
 }

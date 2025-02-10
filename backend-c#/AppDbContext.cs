@@ -17,6 +17,12 @@ public class AppDbContext : DbContext
 
   protected override void OnModelCreating( ModelBuilder modelBuilder )
   {
+    modelBuilder.Entity<MediaFile>()
+      .HasOne( f => f.User )
+      .WithMany()
+      .HasForeignKey( f => f.UserId )
+      .OnDelete( DeleteBehavior.Cascade );
+
     modelBuilder.Entity<SharedFile>()
       .HasOne( sf => sf.File )
       .WithMany()
@@ -27,24 +33,18 @@ public class AppDbContext : DbContext
       .HasOne( sf => sf.Owner )
       .WithMany()
       .HasForeignKey( sf => sf.OwnerId )
-      .OnDelete( DeleteBehavior.Restrict );
+      .OnDelete( DeleteBehavior.Cascade );
 
     modelBuilder.Entity<SharedFile>()
       .HasOne( sf => sf.SharedWith )
       .WithMany()
       .HasForeignKey( sf => sf.SharedWithId )
-      .OnDelete( DeleteBehavior.Restrict );
-
-    modelBuilder.Entity<MediaFile>()
-      .HasOne( f => f.User )
-      .WithMany()
-      .HasForeignKey( f => f.UserId )
-      .OnDelete( DeleteBehavior.Cascade );
+      .OnDelete( DeleteBehavior.SetNull );
 
     modelBuilder.Entity<AccessLog>()
-      .HasOne( al => al.File )
+      .HasOne( al => al.SharedFile )
       .WithMany()
-      .HasForeignKey( al => al.FileId )
+      .HasForeignKey( al => al.SharedFileId )
       .OnDelete( DeleteBehavior.Cascade );
 
     modelBuilder.Entity<AccessLog>()
@@ -58,6 +58,7 @@ public class AppDbContext : DbContext
       .WithMany()
       .HasForeignKey( v => v.FileId )
       .OnDelete( DeleteBehavior.Cascade );
+
     modelBuilder.Entity<Notification>()
         .HasOne( n => n.User )
         .WithMany()

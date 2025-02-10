@@ -4,6 +4,8 @@ namespace backend_c_.Service;
 
 public interface INotificationService
 {
-  IEnumerable<NotificationDto> GetUserNotifications( int userId );
-  NotificationDto SendNotification( CreateNotificationDto notificationDto );
+  Task<IEnumerable<NotificationDto>> GetUserNotifications( int userId );
+  Task<NotificationDto> SendNotification( CreateNotificationDto notificationDto );
+  Task DeleteUserNotification( int notificationId );
+  void DeleteUserNotifications (int userId );
 }

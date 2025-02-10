@@ -35,7 +35,6 @@ public class ExceptionMiddleware
 
   private Task HandleServerExceptionAsync( HttpContext context, ServerException exception )
   {
-
     int statusCode = (int) exception.StatusCode;
 
     object response = new

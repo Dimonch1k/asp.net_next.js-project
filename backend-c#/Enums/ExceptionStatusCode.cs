@@ -11,10 +11,15 @@ public enum ExceptionStatusCode
   FileDuplicate = 409,
 
   SharedFileNotFound = 404,
+  SharedFileDuplicate = 409,
 
+  NoAccessProvided = 403,
   AccessLogNotFound = 404,
 
   FileVersionNotFound = 404,
+  FileVersionDuplicate = 409,
+
+  NotificationNotFound = 404,
 
   ScanResultNotFound = 404,
   ScanTimeout = 408,

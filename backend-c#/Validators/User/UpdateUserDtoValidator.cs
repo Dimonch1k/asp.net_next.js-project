@@ -9,6 +9,7 @@ public class UpdateUserDtoValidator : AbstractValidator<UpdateUserDto>
   {
     RuleFor( x => x.Username )
       .NotEmpty().WithMessage( "Username is required." )
+      .MinimumLength( 5 ).WithMessage( "Username must be at least 5 characters long." )
       .MaximumLength( 50 ).WithMessage( "Username cannot exceed 50 characters." );
 
     RuleFor( x => x.Email )

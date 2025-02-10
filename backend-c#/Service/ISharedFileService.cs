@@ -5,9 +5,11 @@ namespace backend_c_.Service;
 
 public interface ISharedFileService
 {
+  IEnumerable<ShareFileDto> GetAllSharedFiles( );
+  IEnumerable<ShareFileDto> GetMySharedFiles( int ownerId );
   ShareFileDto ShareFile( ShareFileDto data );
-  ShareFileDto DeleteSharedFile( int id );
+  Task<ShareFileDto> DeleteSharedFile( int? id );
 
-  void EnsureSharedFileIsNotNull( SharedFile? sharedFile );
+  Task<SharedFile> GetSharedFileIfExists( int? sharedFileId );
   ShareFileDto SharedFileToDto( SharedFile sharedFile );
 }
